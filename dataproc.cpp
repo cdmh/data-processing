@@ -5,26 +5,34 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+std::pair<std::pair<char const *, char const *>, std::uint32_t>
+read_field(char const *record)
+{
+    return cdmh::data_processing::detail::read_field(record, record+strlen(record));
+}
+
 TEST_CASE("read_field", "Ensure reading of correct field types" )
 {
-    cdmh::csv_reader reader;
+    using cdmh::data_processing::string_type;
+    using cdmh::data_processing::double_type;
+    using cdmh::data_processing::integer_type;
 
-    REQUIRE(reader.read_field("Hello").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("\"Hello World\"").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("\"Hello \\\"World\\\"!\"").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("8374").second == cdmh::csv_reader::integer_type);
-    REQUIRE(reader.read_field("837.4").second == cdmh::csv_reader::double_type);
-    REQUIRE(reader.read_field("+8374").second == cdmh::csv_reader::integer_type);
-    REQUIRE(reader.read_field("+837.4").second == cdmh::csv_reader::double_type);
-    REQUIRE(reader.read_field("-8374").second == cdmh::csv_reader::integer_type);
-    REQUIRE(reader.read_field("-837.4").second == cdmh::csv_reader::double_type);
-    REQUIRE(reader.read_field("83.7.4").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("+83.7.4").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("83a4").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("8.3a4").second == cdmh::csv_reader::string_type);
-    REQUIRE(reader.read_field("a8.34").second == cdmh::csv_reader::string_type);
+    REQUIRE(read_field("Hello").second == string_type);
+    REQUIRE(read_field("\"Hello World\"").second == string_type);
+    REQUIRE(read_field("\"Hello \\\"World\\\"!\"").second == string_type);
+    REQUIRE(read_field("8374").second == integer_type);
+    REQUIRE(read_field("837.4").second == double_type);
+    REQUIRE(read_field("+8374").second == integer_type);
+    REQUIRE(read_field("+837.4").second == double_type);
+    REQUIRE(read_field("-8374").second == integer_type);
+    REQUIRE(read_field("-837.4").second == double_type);
+    REQUIRE(read_field("83.7.4").second == string_type);
+    REQUIRE(read_field("+83.7.4").second == string_type);
+    REQUIRE(read_field("83a4").second == string_type);
+    REQUIRE(read_field("8.3a4").second == string_type);
+    REQUIRE(read_field("a8.34").second == string_type);
 
-    auto field = reader.read_field("Hello, World");
+    auto field = read_field("Hello, World");
     REQUIRE(std::distance(field.first.first, field.first.second) == 5);
 }
 #else

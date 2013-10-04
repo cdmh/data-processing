@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="csv_reader.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

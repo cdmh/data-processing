@@ -2,7 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <cstdint>
-#include <cctype>
+#include <locale>
 #include <cassert>
 
 namespace cdmh {
@@ -15,6 +15,32 @@ static std::uint32_t const integer_type = 1 << 2;
 namespace detail {
 
 template<typename It>
+inline
+void skip_whitespace(It &it,It ite)
+{
+    while (it != ite  &&  std::isspace(*it, std::locale::classic()))
+        ++it;
+}
+
+template<typename It>
+inline
+std::pair<std::pair<It,It>,std::uint32_t>&
+trim(std::pair<std::pair<It,It>,std::uint32_t> &src)
+{
+    // trim left
+    skip_whitespace(src.first.first, src.first.second);
+
+    // trim right
+    std::reverse_iterator<It> rit(src.first.second);
+    std::reverse_iterator<It> rite(src.first.first);
+    skip_whitespace(rit, rite);
+    src.first.second = rit.base();
+
+    return src;
+}
+
+template<typename It>
+inline
 std::pair<std::pair<It, It>, std::uint32_t>
 read_field(It &begin, It end)
 {
@@ -45,7 +71,7 @@ read_field(It &begin, It end)
     bool seen_period = false;
     for (; it!=end  &&  *it != ','  &&  !(in_quote  &&  *it == '\"'  &&  !expect_esc); ++it)
     {
-        if (std::isdigit(*it))
+        if (std::isdigit(*it, std::locale::classic()))
             inc_type_mask |= double_type | integer_type;
         else if (*it == '.')
         {
@@ -79,14 +105,17 @@ read_field(It &begin, It end)
     auto result = std::make_pair(std::pair<It, It>(begin, it), inc_type_mask);
 
     // update returning 'begin' iterator to the start next field
+    begin = it;
     if (in_quote)
     {
-        assert(*it == '\"');
-        ++it;
+        assert(*begin == '\"');
+        ++begin;
     }
-    assert(it == end  ||  *it == ',');
-    begin = it;
-    return result;
+
+    assert(begin == end  ||  *begin == ',');
+    if (begin != end  &&  *begin == ',')
+        ++begin;
+    return trim(result);
 }
 
 }   // namespace detail

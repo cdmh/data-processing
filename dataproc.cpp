@@ -11,7 +11,7 @@ read_field(char const *record)
     return cdmh::data_processing::detail::read_field(record, record+strlen(record));
 }
 
-TEST_CASE("read_field", "Ensure reading of correct field types" )
+TEST_CASE("read_field", "Ensure reading of correct field types")
 {
     using cdmh::data_processing::string_type;
     using cdmh::data_processing::double_type;
@@ -32,8 +32,13 @@ TEST_CASE("read_field", "Ensure reading of correct field types" )
     REQUIRE(read_field("8.3a4").second == string_type);
     REQUIRE(read_field("a8.34").second == string_type);
 
-    auto field = read_field("Hello, World");
-    REQUIRE(std::distance(field.first.first, field.first.second) == 5);
+    auto record = "Hello, World   ";
+    auto it = record;
+    auto ite = record+strlen(record);
+    auto field1 = cdmh::data_processing::detail::read_field(it, ite);
+    auto field2 = cdmh::data_processing::detail::read_field(it, ite);
+    REQUIRE(std::distance(field1.first.first, field1.first.second) == 5);
+    REQUIRE(std::distance(field2.first.first, field2.first.second) == 5);
 }
 #else
 

@@ -53,10 +53,12 @@ int main()
     csv.read(100);
     auto keypoints = csv.create_dataset();
     std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns";
-    auto image = keypoints[0](30);
-    image = keypoints[1](30);
-    image = keypoints[2](30);
-    image = keypoints[3](30);
+    char const *image = keypoints[0][30];
+    image = keypoints[1][30];
+    image = keypoints[2][30];
+    image = keypoints[3][30];
+    auto a = keypoints[3];
+    std::cout << "\n" << a[0] << " " << (double)a[1];
 
     return 0;
 }

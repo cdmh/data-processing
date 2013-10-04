@@ -227,15 +227,79 @@ class dataset
         return columns_.size()==0? 0 : columns_[0].second.size();
     }
 
-    std::function<char const * (size_t)>
-    operator[](size_t row) const
+    struct proxy
     {
-        return std::bind(&dataset::at, this, row, std::placeholders::_1);
+        struct value
+        {
+            value(dataset const &ds,size_t row,size_t column): ds_(ds), row_(row),column_(column)
+            {
+            }
+
+            value(value const &)            = delete;
+            value &operator=(value const &) = delete;
+            value &operator=(value &&other)
+            {
+                assert(&ds_ == &other.ds_);
+                row_ = other.row_;
+                column_ = other.column_;
+                return *this;
+            }
+
+            template<typename U>
+            operator U() const
+            {
+                return ds_.at<U>(row_, column_);
+            }
+
+            dataset const &ds_;
+            size_t         row_;
+            size_t         column_;
+        };
+
+        proxy(dataset const &ds, size_t row) : ds_(ds), row_(row)
+        {
+        }
+
+        proxy(proxy const &)            = delete;
+        proxy &operator=(proxy const &) = delete;
+
+        value operator[](size_t column) const
+        {
+            return value(ds_, row_, column);
+        }
+
+      private:
+        dataset const &ds_;
+        size_t  const  row_;
+    };
+
+    proxy operator[](size_t row) const
+    {
+        return proxy(*this, row);
     }
 
+    template<typename U>
+    U at(size_t row, size_t column) const;
+
+    template<>
     char const *at(size_t row, size_t column) const
     {
+        assert(columns_[column].first == string_type);
         return columns_[column].second[row].string_;
+    }
+
+    template<>
+    double at(size_t row, size_t column) const
+    {
+        assert(columns_[column].first == double_type);
+        return columns_[column].second[row].double_;
+    }
+
+    template<>
+    std::uint32_t at(size_t row, size_t column) const
+    {
+        assert(columns_[column].first == integer_type);
+        return columns_[column].second[row].integer_;
     }
 
   private:
@@ -367,9 +431,13 @@ class mapped_csv
         assert(column_info_.size() == column_values_.size());
     }
 
-    void create_column(unsigned /*index*/, std::pair<char const *, char const *> &name, std::uint32_t /*type*/)
+    void create_column(unsigned index, std::pair<char const *, char const *> &name, std::uint32_t /*type*/)
     {
+#ifdef NDEBUG
+        index;
+#else
         assert(index == column_info_.size());
+#endif
         column_info_.push_back(column_info_t(name,0));
         column_values_.push_back(string_list_t());
     }

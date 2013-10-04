@@ -58,7 +58,7 @@ int main()
     image = keypoints[2][30];
     image = keypoints[3][30];
     auto a = keypoints[3];
-    std::cout << "\n" << a[0] << " " << (double)a[1];
+    std::cout << "\n" << (double)a[0] << " " << (double)a[1];
 
     return 0;
 }

@@ -184,11 +184,6 @@ namespace cdmh {
     template <typename T, typename F=file<char> >
     class memory_mapped_file
     {
-      private:
-        T             *ptr_;
-        err_t          err_;
-        detail_struct  detail_;
-
       public:
         memory_mapped_file();
         memory_mapped_file(F &file, file_access access);
@@ -216,6 +211,11 @@ namespace cdmh {
         // data accessibility
         T       *get(void)             { return ptr_;        }
         const T *get(void)       const { return ptr_;        }
+
+      private:
+        T             *ptr_;
+        err_t          err_;
+        detail_struct  detail_;
     };
 
 

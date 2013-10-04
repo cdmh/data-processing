@@ -41,9 +41,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -76,7 +80,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="csv_reader.h" />
+    <ClInclude Include="mapped_csv.h" />
+    <ClInclude Include="memmap.h" />
+    <ClInclude Include="memmap\file_posix.h" />
+    <ClInclude Include="memmap\file_win32.h" />
+    <ClInclude Include="memmap\mmf_posix.h" />
+    <ClInclude Include="memmap\mmf_win32.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

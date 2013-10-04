@@ -1,7 +1,8 @@
 #include "stdafx.h"
-#include "csv_reader.h"
+#include <iostream>
+#include "mapped_csv.h"
 
-#if 1
+#if 0
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
@@ -32,7 +33,7 @@ TEST_CASE("read_field", "Ensure reading of correct field types")
     REQUIRE(read_field("8.3a4").second == string_type);
     REQUIRE(read_field("a8.34").second == string_type);
 
-    auto record = "Hello, World   ";
+    auto record = "      Hello, World   ";
     auto it = record;
     auto ite = record+strlen(record);
     auto field1 = cdmh::data_processing::detail::read_field(it, ite);
@@ -44,7 +45,9 @@ TEST_CASE("read_field", "Ensure reading of correct field types")
 
 int main()
 {
-    auto keypoints = cdmh::read_csv("data/facial-keypoints");
+    cdmh::data_processing::mapped_csv csv("data/training.csv");
+    auto keypoints = csv.read();
+    std::cout << csv.size() << " records"; 
 
     return 0;
 }

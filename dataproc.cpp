@@ -45,9 +45,18 @@ TEST_CASE("read_field", "Ensure reading of correct field types")
 
 int main()
 {
+#if defined(_MSC_VER)  &&  defined(_DEBUG)
+    _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     cdmh::data_processing::mapped_csv csv("data/training.csv");
-    auto keypoints = csv.read();
-    std::cout << csv.size() << " records"; 
+    csv.read(100);
+    auto keypoints = csv.create_dataset();
+    std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns";
+    auto image = keypoints[0](30);
+    image = keypoints[1](30);
+    image = keypoints[2](30);
+    image = keypoints[3](30);
 
     return 0;
 }

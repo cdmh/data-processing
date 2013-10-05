@@ -7,14 +7,14 @@ namespace data_processing {
 class mapped_csv
 {
   public:
-    mapped_csv(char const * const filename)
+    explicit mapped_csv(char const * const filename)
       : file_(filename, readonly),
         mmf_(file_, readonly)
     {
     }
 
     dataset             create_dataset(bool destructive = true);
-    void                read(std::uint64_t max_records=0);
+    bool          const read(std::uint64_t max_records=0);
     std::uint64_t const size() const;
 
 
@@ -88,7 +88,7 @@ bool const mapped_csv::process_record(It &begin, It end, Fn fn)
     return true;
 }
 
-inline void mapped_csv::read(std::uint64_t max_records)
+inline bool const mapped_csv::read(std::uint64_t max_records)
 {
     typedef 
     std::function<void (unsigned, std::pair<char const *, char const *> &, std::uint32_t)>
@@ -99,6 +99,9 @@ inline void mapped_csv::read(std::uint64_t max_records)
     using std::placeholders::_3;
     store_fn_t store         = std::bind(&mapped_csv::create_column, this, _1, _2, _3);
     store_fn_t store_fields  = std::bind(&mapped_csv::store_field, this, _1, _2, _3);
+
+    if (!mmf_.is_mapped())
+        return false;
 
     char const *it = mmf_.get();
     char const *ite = it + file_.size();
@@ -112,6 +115,8 @@ inline void mapped_csv::read(std::uint64_t max_records)
         detail::ltrim(it, ite);
         store = store_fields;
     }
+
+    return true;
 }
 
 inline std::uint64_t const mapped_csv::size() const

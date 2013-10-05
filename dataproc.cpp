@@ -12,23 +12,47 @@ read_field(char const *record)
     return cdmh::data_processing::detail::read_field(record, record+strlen(record));
 }
 
-TEST_CASE("read_field", "Ensure reading of correct field types")
+TEST_CASE("read_field/string fields", "Ensure reading of correct field types")
 {
     REQUIRE(read_field("Hello").second == string_type);
     REQUIRE(read_field("\"Hello World\"").second == string_type);
     REQUIRE(read_field("\"Hello \\\"World\\\"!\"").second == string_type);
+}
+
+TEST_CASE("read_field/integer fields", "")
+{
     REQUIRE(read_field("8374").second == integer_type);
     REQUIRE(read_field("837.4").second == double_type);
+}
+
+TEST_CASE("read_field/unary signs", "")
+{
     REQUIRE(read_field("+8374").second == integer_type);
     REQUIRE(read_field("+837.4").second == double_type);
     REQUIRE(read_field("-8374").second == integer_type);
     REQUIRE(read_field("-837.4").second == double_type);
+}
+
+TEST_CASE("read_field/string fields starting with numerics", "")
+{
     REQUIRE(read_field("83.7.4").second == string_type);
     REQUIRE(read_field("+83.7.4").second == string_type);
     REQUIRE(read_field("83a4").second == string_type);
     REQUIRE(read_field("8.3a4").second == string_type);
     REQUIRE(read_field("a8.34").second == string_type);
+}
 
+TEST_CASE("read_field/numerics with padding", "")
+{
+    REQUIRE(read_field("8374 ").second == integer_type);
+    REQUIRE(read_field("+8374 ").second == integer_type);
+    REQUIRE(read_field("-8374 ").second == integer_type);
+    REQUIRE(read_field(" +8374").second == integer_type);
+    REQUIRE(read_field(" +8374 ").second == integer_type);
+}
+
+TEST_CASE("read_field/comma separated fields with space padding", "")
+{
     auto record = "      Hello, World   ";
     auto it = record;
     auto ite = record+strlen(record);
@@ -36,6 +60,15 @@ TEST_CASE("read_field", "Ensure reading of correct field types")
     auto field2 = cdmh::data_processing::detail::read_field(it, ite);
     REQUIRE(std::distance(field1.first.first, field1.first.second) == 5);
     REQUIRE(std::distance(field2.first.first, field2.first.second) == 5);
+}
+
+TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces", "")
+{
+    auto record = "    \"  Hello, World \"  ";
+    auto it = record;
+    auto ite = record+strlen(record);
+    auto field = cdmh::data_processing::detail::read_field(it, ite);
+    REQUIRE(std::distance(field.first.first, field.first.second) == 15);
 }
 #else
 

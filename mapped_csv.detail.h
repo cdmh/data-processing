@@ -47,10 +47,13 @@ read_field(It &begin, It end)
 {
     assert(begin != end);
 
-    bool in_quote  = false;
+    // we'll trim spaces before any quotes, but not within quotes
+    ltrim(begin, end);
+
+    bool in_quotes  = false;
     if (*begin == '\"')
     {
-        in_quote = true;
+        in_quotes = true;
         ++begin;
     }
 
@@ -67,13 +70,21 @@ read_field(It &begin, It end)
 
     bool expect_esc  = false;
     bool seen_period = false;
-    for (; it!=end  &&  *it != ','  &&  !(in_quote  &&  *it == '\"'  &&  !expect_esc); ++it)
+    bool seen_space  = false;
+    for (; it!=end  &&  (in_quotes  ||  (!in_quotes  &&  *it != ','))  &&  !(in_quotes  &&  *it == '\"'  &&  !expect_esc); ++it)
     {
-        if (std::isdigit(*it, std::locale::classic()))
-            incl_type_mask |= double_type | integer_type;
+        if (std::isdigit(*it,std::locale::classic()))
+        {
+            if (seen_space)
+                excl_type_mask |= double_type | integer_type;
+            else
+                incl_type_mask |= double_type | integer_type;
+        }
         else if (*it == '.')
         {
-            if (seen_period)
+            if (seen_space)
+                excl_type_mask |= double_type | integer_type;
+            else if (seen_period)
                 excl_type_mask |= double_type;
             else
             {
@@ -84,7 +95,11 @@ read_field(It &begin, It end)
         }
         else
         {
-            excl_type_mask |= double_type | integer_type;
+            if (std::isspace(*it, std::locale::classic()))
+                seen_space = true;
+            else
+                excl_type_mask |= double_type | integer_type;
+
             if (!expect_esc  &&  *it == '\\')
                 expect_esc = true;
             else
@@ -92,8 +107,9 @@ read_field(It &begin, It end)
         }
     }
 
-    ltrim(begin, it);
-    rtrim(begin, it);
+    if (!in_quotes)
+        rtrim(begin, it);
+
     if (begin == it)
         return std::make_pair(std::pair<It, It>(begin++, it), null_type);
 
@@ -109,10 +125,10 @@ read_field(It &begin, It end)
 
     // update returning 'begin' iterator to the start next field
     begin = it;
-    if (in_quote)
+    if (in_quotes)
     {
         assert(*begin == '\"');
-        ++begin;
+        ltrim(++begin, it);
     }
 
     if (begin != end  &&  *begin == ',')

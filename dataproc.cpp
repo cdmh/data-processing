@@ -2,8 +2,7 @@
 #include <iostream>
 #include "dataproc.h"
 
-#if 1
-#define CATCH_CONFIG_MAIN
+#define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
 std::pair<std::pair<char const *, char const *>, std::uint32_t>
@@ -14,41 +13,41 @@ read_field(char const *record)
 
 TEST_CASE("read_field/string fields", "Ensure reading of correct field types")
 {
-    REQUIRE(read_field("Hello").second == string_type);
-    REQUIRE(read_field("\"Hello World\"").second == string_type);
-    REQUIRE(read_field("\"Hello \\\"World\\\"!\"").second == string_type);
+    CHECK(read_field("Hello").second == string_type);
+    CHECK(read_field("\"Hello World\"").second == string_type);
+    CHECK(read_field("\"Hello \\\"World\\\"!\"").second == string_type);
 }
 
 TEST_CASE("read_field/integer fields", "")
 {
-    REQUIRE(read_field("8374").second == integer_type);
-    REQUIRE(read_field("837.4").second == double_type);
+    CHECK(read_field("8374").second == integer_type);
+    CHECK(read_field("837.4").second == double_type);
 }
 
 TEST_CASE("read_field/unary signs", "")
 {
-    REQUIRE(read_field("+8374").second == integer_type);
-    REQUIRE(read_field("+837.4").second == double_type);
-    REQUIRE(read_field("-8374").second == integer_type);
-    REQUIRE(read_field("-837.4").second == double_type);
+    CHECK(read_field("+8374").second == integer_type);
+    CHECK(read_field("+837.4").second == double_type);
+    CHECK(read_field("-8374").second == integer_type);
+    CHECK(read_field("-837.4").second == double_type);
 }
 
 TEST_CASE("read_field/string fields starting with numerics", "")
 {
-    REQUIRE(read_field("83.7.4").second == string_type);
-    REQUIRE(read_field("+83.7.4").second == string_type);
-    REQUIRE(read_field("83a4").second == string_type);
-    REQUIRE(read_field("8.3a4").second == string_type);
-    REQUIRE(read_field("a8.34").second == string_type);
+    CHECK(read_field("83.7.4").second == string_type);
+    CHECK(read_field("+83.7.4").second == string_type);
+    CHECK(read_field("83a4").second == string_type);
+    CHECK(read_field("8.3a4").second == string_type);
+    CHECK(read_field("a8.34").second == string_type);
 }
 
 TEST_CASE("read_field/numerics with padding", "")
 {
-    REQUIRE(read_field("8374 ").second == integer_type);
-    REQUIRE(read_field("+8374 ").second == integer_type);
-    REQUIRE(read_field("-8374 ").second == integer_type);
-    REQUIRE(read_field(" +8374").second == integer_type);
-    REQUIRE(read_field(" +8374 ").second == integer_type);
+    CHECK(read_field("8374 ").second == integer_type);
+    CHECK(read_field("+8374 ").second == integer_type);
+    CHECK(read_field("-8374 ").second == integer_type);
+    CHECK(read_field(" +8374").second == integer_type);
+    CHECK(read_field(" +8374 ").second == integer_type);
 }
 
 TEST_CASE("read_field/comma separated fields with space padding", "")
@@ -58,8 +57,8 @@ TEST_CASE("read_field/comma separated fields with space padding", "")
     auto ite = record+strlen(record);
     auto field1 = cdmh::data_processing::detail::read_field(it, ite);
     auto field2 = cdmh::data_processing::detail::read_field(it, ite);
-    REQUIRE(std::distance(field1.first.first, field1.first.second) == 5);
-    REQUIRE(std::distance(field2.first.first, field2.first.second) == 5);
+    CHECK(std::distance(field1.first.first, field1.first.second) == 5);
+    CHECK(std::distance(field2.first.first, field2.first.second) == 5);
 }
 
 TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces", "")
@@ -68,28 +67,62 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
     auto it = record;
     auto ite = record+strlen(record);
     auto field = cdmh::data_processing::detail::read_field(it, ite);
-    REQUIRE(std::distance(field.first.first, field.first.second) == 15);
+    CHECK(std::distance(field.first.first, field.first.second) == 15);
 }
-#else
 
-int main()
+
+
+
+TEST_CASE("mapped_csv", "")
+{
+    cdmh::data_processing::mapped_csv csv("data/training.csv");
+
+#ifdef NDEBUG
+    size_t const rows_requested = 0;
+    size_t const rows_expected  = 7049;
+#else
+    size_t const rows_requested = 100;
+    size_t const rows_expected  = 100;
+#endif
+
+    REQUIRE(csv.read(rows_requested));
+    REQUIRE(csv.size() == rows_expected);
+
+    SECTION("row and column count")
+    {
+        auto keypoints = csv.create_dataset();
+        std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns\n";
+        CHECK(keypoints.rows() == rows_expected);
+        REQUIRE(keypoints.columns() == 31);
+    }
+
+
+    SECTION("row & column data access")
+    {
+        auto keypoints = csv.create_dataset();
+        char const *image = keypoints[0][30];
+        image = keypoints[1][30];
+        image = keypoints[2][30];
+        image = keypoints[3][30];
+        auto a = keypoints[3];
+        auto b = a[0];
+        std::cout << "\n" << a[0] << " " << a[1] << "\n";
+    }
+}
+
+int main(int argc, char * const argv[])
 {
 #if defined(_MSC_VER)  &&  defined(_DEBUG)
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    cdmh::data_processing::mapped_csv csv("data/training.csv");
-    csv.read(100);
-    auto keypoints = csv.create_dataset();
-    std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns";
-    char const *image = keypoints[0][30];
-    image = keypoints[1][30];
-    image = keypoints[2][30];
-    image = keypoints[3][30];
-    auto a = keypoints[3];
-    auto b = a[0];
-    std::cout << "\n" << a[0] << " " << a[1];
+    Catch::Session session;
+    Catch::ConfigData &config_data = session.configData();
+    config_data.showDurations = Catch::ShowDurations::OrNot::Always;
 
-    return 0;
+    int returnCode = session.applyCommandLine(argc, argv);
+    if (returnCode != 0)
+        return returnCode;
+
+    return session.run();
 }
-#endif

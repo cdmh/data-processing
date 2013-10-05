@@ -22,8 +22,8 @@ class dataset
     dataset &operator=(dataset &&other)      = delete;  // of dynamic memory allocation
     dataset &operator=(dataset const &other) = delete;  // in the union
 
-    size_t        const columns(void)              const;
-    size_t        const rows(void)                 const;
+    size_t        const columns()                  const;
+    size_t        const rows()                     const;
     std::uint32_t const column_type(size_t column) const;
 
     template<typename U>
@@ -48,7 +48,7 @@ class dataset
                 return ds_.at<U>(row_, column_);
             }
 
-            std::uint32_t const type(void) const
+            std::uint32_t const type() const
             {
                 return ds_.column_type(column_);
             }
@@ -97,7 +97,7 @@ class dataset
     void add_column_string_data(std::uint32_t index, std::pair<char const *,char const *> value);
     void add_column_double_data(std::uint32_t index, std::pair<char const *, char const *> value);
     void add_column_integer_data(std::uint32_t index, std::pair<char const *, char const *> value);
-    void assert_valid(void) const;
+    void assert_valid() const;
 
   private:
     std::vector<
@@ -129,12 +129,12 @@ inline dataset::~dataset()
                 delete[] value.string_;
 }
 
-inline size_t const dataset::columns(void) const
+inline size_t const dataset::columns() const
 {
     return columns_.size();
 }
 
-inline size_t const dataset::rows(void) const
+inline size_t const dataset::rows() const
 {
     assert_valid();
     return columns_.size()==0? 0 : columns_[0].second.size();
@@ -187,7 +187,7 @@ inline void dataset::add_column_integer_data(std::uint32_t index, std::pair<char
     columns_[index].second.push_back(n);
 }
 
-inline void dataset::assert_valid(void) const
+inline void dataset::assert_valid() const
 {
 #ifndef NDEBUG
     if (columns_.size() > 0)

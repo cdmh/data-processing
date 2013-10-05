@@ -13,7 +13,7 @@
 namespace cdmh {
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::release(void)
+bool memory_mapped_file<T, F>::release()
 {
     return ::munmap(reinterpret_cast<char *>(ptr_), detail_.len);
 }

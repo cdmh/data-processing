@@ -9,7 +9,7 @@
 namespace cdmh {
 
 template<typename T>
-bool file<T>::close(void) throw()
+bool file<T>::close() throw()
 {
     if (handle_ == MEMMAP_INVALID_HANDLE)
         return true;

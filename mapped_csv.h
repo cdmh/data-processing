@@ -15,7 +15,7 @@ class mapped_csv
 
     dataset             create_dataset(bool destructive = true);
     void                read(std::uint64_t max_records=0);
-    std::uint64_t const size(void);
+    std::uint64_t const size() const;
 
 
   protected:
@@ -114,7 +114,7 @@ inline void mapped_csv::read(std::uint64_t max_records)
     }
 }
 
-inline std::uint64_t const mapped_csv::size(void)
+inline std::uint64_t const mapped_csv::size() const
 {
     return record_count_;
 }

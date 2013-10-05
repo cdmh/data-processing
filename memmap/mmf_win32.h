@@ -10,7 +10,7 @@ namespace cdmh {
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::release(void)
+bool memory_mapped_file<T, F>::release()
 {
     if (detail_.file_mapping_handle_ != INVALID_HANDLE_VALUE
     &&  detail_.file_mapping_handle_ != NULL)

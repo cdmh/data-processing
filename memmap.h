@@ -140,14 +140,14 @@ namespace cdmh {
         file(std::basic_string<T> const &filepath, file_access access) throw();
         ~file() throw();
 
-        bool close(void) throw();
+        bool close() throw();
         bool create(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED;
 
-        err_t                error(void)    const throw() { return err_;                                }
-        std::basic_string<T> filepath(void) const throw() { return filepath_;                           }
-        file_handle_t        handle(void)   const throw() { return handle_;                             }
-        filesize_t           size(void)     const throw() { return get_file_size(handle_);              }
-        bool                 is_open(void)  const throw() { return handle_ != MEMMAP_INVALID_HANDLE;  }
+        err_t                error()    const throw() { return err_;                             }
+        std::basic_string<T> filepath() const throw() { return filepath_;                        }
+        file_handle_t        handle()   const throw() { return handle_;                          }
+        filesize_t           size()     const throw() { return get_file_size(handle_);           }
+        bool                 is_open()  const throw() { return handle_ != MEMMAP_INVALID_HANDLE; }
 
         bool open_readonly(const std::basic_string<T> &filepath)  THROWS_ALREADY_ATTACHED;
         bool open_readwrite(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED;
@@ -202,15 +202,15 @@ namespace cdmh {
                  offset_t            &off);
 
         // release the mapping
-        bool     release(void);
+        bool     release();
 
         // is the object mapped to a file?
-        bool     is_mapped(void) const { return (ptr_ != 0); }
-        err_t    error(void)     const { return err_;        }
+        bool     is_mapped() const { return (ptr_ != 0); }
+        err_t    error()     const { return err_;        }
 
         // data accessibility
-        T       *get(void)             { return ptr_;        }
-        const T *get(void)       const { return ptr_;        }
+        T       *get()             { return ptr_;        }
+        const T *get()       const { return ptr_;        }
 
       private:
         T             *ptr_;

@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include <iostream>
-#include "mapped_csv.h"
+#include "dataproc.h"
 
-#if 0
+#if 1
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
@@ -14,10 +14,6 @@ read_field(char const *record)
 
 TEST_CASE("read_field", "Ensure reading of correct field types")
 {
-    using cdmh::data_processing::string_type;
-    using cdmh::data_processing::double_type;
-    using cdmh::data_processing::integer_type;
-
     REQUIRE(read_field("Hello").second == string_type);
     REQUIRE(read_field("\"Hello World\"").second == string_type);
     REQUIRE(read_field("\"Hello \\\"World\\\"!\"").second == string_type);

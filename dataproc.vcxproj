@@ -80,6 +80,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="dataproc.h" />
+    <ClInclude Include="dataset.h" />
+    <ClInclude Include="mapped_csv.detail.h" />
     <ClInclude Include="mapped_csv.h" />
     <ClInclude Include="memmap.h" />
     <ClInclude Include="memmap\file_posix.h" />

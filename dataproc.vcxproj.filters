@@ -36,6 +36,15 @@
     <ClInclude Include="mapped_csv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="mapped_csv.detail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dataproc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <iosfwd>           // basic_ostream
 #include <functional>       // std::function
 #include <fstream>
 #include <cstdint>
@@ -163,7 +164,7 @@ read_field(It &begin, It end)
 
 class dataset
 {
-  private:
+  public:
     typedef union value
     {
         double        double_;
@@ -175,7 +176,6 @@ class dataset
         value(char const *string)    : string_(string)   { }
     } value_t;
 
-  public:
     explicit dataset(std::uint32_t num_columns = 0)
     {
         if (num_columns > 0)
@@ -227,23 +227,15 @@ class dataset
         return columns_.size()==0? 0 : columns_[0].second.size();
     }
 
-    struct proxy
+    class row_data
     {
-        struct value
+      public:
+        class value
         {
-            value(dataset const &ds,size_t row,size_t column): ds_(ds), row_(row),column_(column)
-            {
-            }
-
-            value(value const &)            = delete;
+          public:
+            value(value const &) = default;
+            value &operator=(value &&other) = delete;
             value &operator=(value const &) = delete;
-            value &operator=(value &&other)
-            {
-                assert(&ds_ == &other.ds_);
-                row_ = other.row_;
-                column_ = other.column_;
-                return *this;
-            }
 
             template<typename U>
             operator U() const
@@ -251,21 +243,39 @@ class dataset
                 return ds_.at<U>(row_, column_);
             }
 
+            std::uint32_t const type(void) const
+            {
+                return ds_.column_type(column_);
+            }
+
+          protected:
+            value(dataset const &ds,size_t row,size_t column): ds_(ds), row_(row),column_(column)
+            {
+            }
+
+          private:
             dataset const &ds_;
             size_t         row_;
             size_t         column_;
         };
 
-        proxy(dataset const &ds, size_t row) : ds_(ds), row_(row)
+      private:
+        class value_constructor : public value
         {
-        }
+          public:
+            value_constructor(dataset const &ds,size_t row,size_t column) : value(ds, row, column)
+            {
+            }
+        };
 
-        proxy(proxy const &)            = delete;
-        proxy &operator=(proxy const &) = delete;
+      public:
+        row_data(dataset const &ds, size_t row) : ds_(ds), row_(row) { }
+        row_data(row_data const &)            = delete;
+        row_data &operator=(row_data const &) = delete;
 
         value operator[](size_t column) const
         {
-            return value(ds_, row_, column);
+            return value_constructor(ds_, row_, column);
         }
 
       private:
@@ -273,9 +283,14 @@ class dataset
         size_t  const  row_;
     };
 
-    proxy operator[](size_t row) const
+    row_data operator[](size_t row) const
     {
-        return proxy(*this, row);
+        return row_data(*this, row);
+    }
+
+    std::uint32_t const column_type(size_t column) const
+    {
+        return columns_[column].first;
     }
 
     template<typename U>
@@ -344,6 +359,20 @@ class dataset
         >
     > columns_;
 };
+
+template<typename E, typename T>
+std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_data::value const &value)
+{
+    switch (value.type())
+    {
+        case string_type:   o << (char const *)value;    break;
+        case double_type:   o << (double)value;          break;
+        case integer_type:  o << (std::uint32_t)value;   break;
+        default:            assert(!"Unknown value type");
+    }
+    return o;
+}
+
 
 class mapped_csv
 {

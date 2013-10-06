@@ -5,6 +5,9 @@
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
+namespace { // anonymous namespace
+
+inline
 std::pair<cdmh::data_processing::string_view, cdmh::data_processing::type_mask_t>
 read_field(char const *record)
 {
@@ -90,26 +93,32 @@ TEST_CASE("mapped_csv", "")
     REQUIRE(csv.read(rows_requested));
     REQUIRE(csv.size() == rows_expected);
 
-    auto keypoints = csv.create_dataset();
-    std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns\n";
-    CHECK(keypoints.rows() == rows_expected);
-    REQUIRE(keypoints.columns() == 31);
+    auto ds = csv.create_dataset();
+    std::cout << ds.rows() << " records with " << ds.columns() << " columns\n";
+    CHECK(ds.rows() == rows_expected);
+    REQUIRE(ds.columns() == 31);
 
-    char const *image = keypoints[0][30];
-    image = keypoints[1][30];   // access row data
-    image = keypoints[2][30];
-    image = keypoints[3][30];
+    char const *image = ds[0][30];
+    image = ds[1][30];   // access row data
+    image = ds[2][30];
+    image = ds.row(3)[30];
 
-    // test value serialisation
-    auto a = keypoints[3];
-    std::cout << "\n" << a[0] << " " << a[1];
+    std::ostringstream stream;
+    auto a = ds[3];
+    stream << a[0] << " " << a[1] << " ";       // test value serialisation
+    stream << ds[210];                   // test row serialisation
 
-    // test row serialisation
-    std::cout << "\n" << keypoints[210];
-    std::cout << "\n" << keypoints[211];
-    std::cout << "\n" << keypoints[212];
+    REQUIRE(ds.column(0).count() == ds.rows());      // column 0 has no null values
+    REQUIRE(ds.column(28).count() == ds.rows()-1);   // column 28 has a null value
+    REQUIRE(ds.column(29).count() == ds.rows()-1);   // column 29 has a null value
+
+    // the column mean ignores null values, so will always be greater
+    REQUIRE(ds.column(28).mean() > ds.column(28).sum<double>() / ds.rows());
+
     std::cout << "\n";
 }
+
+}   // anonymous namespace
 
 int main(int argc, char * const argv[])
 {

@@ -27,7 +27,6 @@ class mapped_csv
 
   private:
     typedef std::pair<char const *, char const *> string_t;
-    typedef std::vector<string_t>                 string_list_t;
     typedef std::pair<string_t, std::uint32_t>    column_info_t;
 
     file<char>                 file_;
@@ -35,6 +34,8 @@ class mapped_csv
     std::uint64_t              record_count_;
     std::vector<column_info_t> column_info_;
     std::vector<std::uint32_t> incl_type_mask_;
+
+    typedef std::vector<std::pair<std::uint32_t, string_t>> string_list_t;
     std::vector<string_list_t> column_values_;
 };
 
@@ -141,7 +142,7 @@ inline void mapped_csv::store_field(unsigned index, std::pair<char const *, char
             column_info_[index].second = string_type;
     }
 
-    column_values_[index].push_back(value);
+    column_values_[index].push_back(std::make_pair(type, value));
     assert(column_info_.size() == column_values_.size());
 }
 

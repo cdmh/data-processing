@@ -106,6 +106,7 @@ TEST_CASE("mapped_csv", "")
     std::cout << "\n" << keypoints[210];
     std::cout << "\n" << keypoints[211];
     std::cout << "\n" << keypoints[212];
+    std::cout << "\n";
 }
 
 int main(int argc, char * const argv[])
@@ -122,7 +123,5 @@ int main(int argc, char * const argv[])
     if (returnCode != 0)
         return returnCode;
 
-    auto const result = session.run();
-    std::cout << "\n";
-    return result;
+    return session.run();
 }

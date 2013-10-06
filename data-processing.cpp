@@ -81,33 +81,31 @@ TEST_CASE("mapped_csv", "")
     size_t const rows_requested = 0;
     size_t const rows_expected  = 7049;
 #else
-    size_t const rows_requested = 100;
-    size_t const rows_expected  = 100;
+    size_t const rows_requested = 220;
+    size_t const rows_expected  = rows_requested;
 #endif
 
     REQUIRE(csv.read(rows_requested));
     REQUIRE(csv.size() == rows_expected);
 
-    SECTION("row and column count")
-    {
-        auto keypoints = csv.create_dataset();
-        std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns\n";
-        CHECK(keypoints.rows() == rows_expected);
-        REQUIRE(keypoints.columns() == 31);
-    }
+    auto keypoints = csv.create_dataset();
+    std::cout << keypoints.rows() << " records with " << keypoints.columns() << " columns\n";
+    CHECK(keypoints.rows() == rows_expected);
+    REQUIRE(keypoints.columns() == 31);
 
+    char const *image = keypoints[0][30];
+    image = keypoints[1][30];   // access row data
+    image = keypoints[2][30];
+    image = keypoints[3][30];
 
-    SECTION("row & column data access")
-    {
-        auto keypoints = csv.create_dataset();
-        char const *image = keypoints[0][30];
-        image = keypoints[1][30];
-        image = keypoints[2][30];
-        image = keypoints[3][30];
-        auto a = keypoints[3];
-        auto b = a[0];
-        std::cout << "\n" << a[0] << " " << a[1] << "\n";
-    }
+    // test value serialisation
+    auto a = keypoints[3];
+    std::cout << "\n" << a[0] << " " << a[1];
+
+    // test row serialisation
+    std::cout << "\n" << keypoints[210];
+    std::cout << "\n" << keypoints[211];
+    std::cout << "\n" << keypoints[212];
 }
 
 int main(int argc, char * const argv[])
@@ -124,5 +122,7 @@ int main(int argc, char * const argv[])
     if (returnCode != 0)
         return returnCode;
 
-    return session.run();
+    auto const result = session.run();
+    std::cout << "\n";
+    return result;
 }

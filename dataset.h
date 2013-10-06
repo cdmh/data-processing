@@ -83,6 +83,11 @@ class dataset
             return value_constructor(ds_, row_, column);
         }
 
+        size_t size() const
+        {
+            return ds_.columns();
+        }
+
       private:
         dataset const &ds_;
         size_t  const  row_;
@@ -220,10 +225,31 @@ std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_dat
 {
     switch (value.type())
     {
-        case string_type:   o << (char const *)value;    break;
-        case double_type:   o << (double)value;          break;
-        case integer_type:  o << (std::uint32_t)value;   break;
+        case string_type:   o << (char const *)value;   break;
+        case double_type:   o << (double)value;         break;
+        case integer_type:  o << (std::uint32_t)value;  break;
+        case null_type:                                 break;
         default:            assert(!"Unknown value type");
+    }
+    return o;
+}
+
+template<typename E, typename T>
+std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_data const &row)
+{
+    bool first = true;
+    for (size_t loop=0; loop<row.size(); ++loop)
+    {
+        if (first)
+            first = false;
+        else
+            o << ',';
+
+        auto const &value = row[loop];
+        if (value.type() == string_type)
+            o << '\"' << value << '\"';
+        else
+            o << value;
     }
     return o;
 }

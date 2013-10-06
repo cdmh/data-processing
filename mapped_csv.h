@@ -34,8 +34,8 @@ class mapped_csv
     std::uint64_t              record_count_;
     std::vector<column_info_t> column_info_;
     std::vector<type_mask_t>   incl_type_mask_;
-//!!! swap order in pair
-    typedef std::vector<std::pair<type_mask_t, string_t>> string_list_t;
+
+    typedef std::vector<std::pair<string_t, type_mask_t>> string_list_t;
     std::vector<string_list_t> column_values_;
 };
 
@@ -142,7 +142,7 @@ inline void mapped_csv::store_field(unsigned index, std::pair<char const *, char
             column_info_[index].second = string_type;
     }
 
-    column_values_[index].push_back(std::make_pair(type, value));
+    column_values_[index].push_back(std::make_pair(value, type));
     assert(column_info_.size() == column_values_.size());
 }
 

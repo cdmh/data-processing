@@ -34,7 +34,7 @@ class dataset
 
     type_mask_t const type_at(size_t row, size_t column) const;
 
-    std::function<void (std::pair<type_mask_t, std::pair<char const *, char const *>>)>
+    std::function<void (std::pair<std::pair<char const *, char const *>, type_mask_t>)>
     create_column(type_mask_t type);
 
     class row_data
@@ -104,9 +104,9 @@ class dataset
     }
 
   private:
-    void add_column_string_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value);
-    void add_column_double_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value);
-    void add_column_integer_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value);
+    void add_column_string_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value);
+    void add_column_double_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value);
+    void add_column_integer_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value);
     void assert_valid() const;
 
   private:
@@ -181,25 +181,25 @@ type_mask_t const dataset::type_at(size_t row, size_t column) const
     return columns_[column].second[row].type_;
 }
 
-inline void dataset::add_column_string_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value)
+inline void dataset::add_column_string_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value)
 {
-    auto length = std::distance(value.second.first, value.second.second);
+    auto length = std::distance(value.first.first, value.first.second);
     char *string = new char[length+1];
-    strncpy(string, value.second.first, length);
+    strncpy(string, value.first.first, length);
     string[length] = 0;;
-    columns_[index].second.push_back(cell_value(value.first, string));
+    columns_[index].second.push_back(cell_value(value.second, string));
 }
 
-inline void dataset::add_column_double_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value)
+inline void dataset::add_column_double_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value)
 {
-    double d = strtod(value.second.first, nullptr);
-    columns_[index].second.push_back(cell_value(value.first, d));
+    double d = strtod(value.first.first, nullptr);
+    columns_[index].second.push_back(cell_value(value.second, d));
 }
 
-inline void dataset::add_column_integer_data(size_t index, std::pair<type_mask_t, std::pair<char const *, char const *>> value)
+inline void dataset::add_column_integer_data(size_t index, std::pair<std::pair<char const *, char const *>, type_mask_t> value)
 {
-    size_t n = atol(value.second.first);
-    columns_[index].second.push_back(cell_value(value.first, n));
+    size_t n = atol(value.first.first);
+    columns_[index].second.push_back(cell_value(value.second, n));
 }
 
 inline void dataset::assert_valid() const
@@ -215,7 +215,7 @@ inline void dataset::assert_valid() const
 }
 
 inline
-std::function<void (std::pair<type_mask_t, std::pair<char const *, char const *>>)>
+std::function<void (std::pair<std::pair<char const *, char const *>, type_mask_t>)>
 dataset::create_column(type_mask_t type)
 {
     columns_.push_back(std::make_pair(type, std::vector<cell_value>()));

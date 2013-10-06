@@ -5,7 +5,7 @@
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
-std::pair<std::pair<char const *, char const *>, std::uint32_t>
+std::pair<std::pair<char const *, char const *>, cdmh::data_processing::type_mask_t>
 read_field(char const *record)
 {
     return cdmh::data_processing::detail::read_field(record, record+strlen(record));

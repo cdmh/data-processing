@@ -2,8 +2,9 @@ namespace cdmh {
 namespace data_processing {
 namespace detail {
 
+template<typename T>
 inline
-unsigned const bit_count(std::uint32_t n)
+unsigned const bit_count(T n)
 {
     n = n - ((n >> 1) & 0x55555555);
     n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
@@ -33,8 +34,8 @@ void rtrim(It it,It &ite)
 
 template<typename It>
 inline
-std::pair<std::pair<It,It>,std::uint32_t>&
-trim(std::pair<std::pair<It,It>,std::uint32_t> &src)
+std::pair<std::pair<It,It>, type_mask_t>&
+trim(std::pair<std::pair<It,It>, type_mask_t> &src)
 {
     ltrim(src.first.first, src.first.second);
     rtrim(src.first.first, src.first.second);
@@ -42,7 +43,7 @@ trim(std::pair<std::pair<It,It>,std::uint32_t> &src)
 }
 
 template<typename It>
-std::pair<std::pair<It, It>, std::uint32_t>
+std::pair<std::pair<It, It>, type_mask_t>
 read_field(It &begin, It end)
 {
     assert(begin != end);
@@ -58,8 +59,8 @@ read_field(It &begin, It end)
     }
 
     auto it = begin;
-    std::uint32_t incl_type_mask = string_type;
-    std::uint32_t excl_type_mask = 0;
+    type_mask_t incl_type_mask = string_type;
+    type_mask_t excl_type_mask = 0;
 
     // special case for unary operators
     if (*it == '-'  ||  *it == '+')

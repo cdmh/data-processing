@@ -5,7 +5,7 @@
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 
-std::pair<std::pair<char const *, char const *>, cdmh::data_processing::type_mask_t>
+std::pair<cdmh::data_processing::string_view, cdmh::data_processing::type_mask_t>
 read_field(char const *record)
 {
     return cdmh::data_processing::detail::read_field(record, record+strlen(record));
@@ -57,8 +57,10 @@ TEST_CASE("read_field/comma separated fields with space padding", "")
     auto ite = record+strlen(record);
     auto field1 = cdmh::data_processing::detail::read_field(it, ite);
     auto field2 = cdmh::data_processing::detail::read_field(it, ite);
-    CHECK(std::distance(field1.first.first, field1.first.second) == 5);
-    CHECK(std::distance(field2.first.first, field2.first.second) == 5);
+    CHECK(field1.second == string_type);
+    CHECK(field1.first.length() == 5);
+    CHECK(field2.second == string_type);
+    CHECK(field2.first.length() == 5);
 }
 
 TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces", "")
@@ -67,7 +69,7 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
     auto it = record;
     auto ite = record+strlen(record);
     auto field = cdmh::data_processing::detail::read_field(it, ite);
-    CHECK(std::distance(field.first.first, field.first.second) == 15);
+    CHECK(std::distance(field.first.begin(), field.first.end()) == 15);
 }
 
 

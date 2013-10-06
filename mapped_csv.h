@@ -19,15 +19,14 @@ class mapped_csv
 
 
   protected:
-    void create_column(unsigned index, std::pair<char const *, char const *> &name, type_mask_t /*type*/);
-    void store_field(unsigned index, std::pair<char const *, char const *> &value, type_mask_t type);
+    void create_column(unsigned index, string_view &name, type_mask_t /*type*/);
+    void store_field(unsigned index, string_view &value, type_mask_t type);
 
     template<typename It, typename Fn>
     bool const process_record(It &begin, It end, Fn fn);
 
   private:
-    typedef std::pair<char const *, char const *> string_t;
-    typedef std::pair<string_t, type_mask_t>    column_info_t;
+    typedef std::pair<string_view, type_mask_t>    column_info_t;
 
     file<char>                 file_;
     memory_mapped_file<char>   mmf_;
@@ -35,11 +34,11 @@ class mapped_csv
     std::vector<column_info_t> column_info_;
     std::vector<type_mask_t>   incl_type_mask_;
 
-    typedef std::vector<std::pair<string_t, type_mask_t>> string_list_t;
+    typedef std::vector<std::pair<string_view, type_mask_t>> string_list_t;
     std::vector<string_list_t> column_values_;
 };
 
-inline void mapped_csv::create_column(unsigned index, std::pair<char const *, char const *> &name, type_mask_t /*type*/)
+inline void mapped_csv::create_column(unsigned index, string_view &name, type_mask_t /*type*/)
 {
 #ifdef NDEBUG
     index;
@@ -92,7 +91,7 @@ bool const mapped_csv::process_record(It &begin, It end, Fn fn)
 inline bool const mapped_csv::read(std::uint64_t max_records)
 {
     typedef 
-    std::function<void (unsigned, std::pair<char const *, char const *> &, type_mask_t)>
+    std::function<void (unsigned, string_view &, type_mask_t)>
     store_fn_t;
 
     using std::placeholders::_1;
@@ -125,7 +124,7 @@ inline std::uint64_t const mapped_csv::size() const
     return record_count_;
 }
 
-inline void mapped_csv::store_field(unsigned index, std::pair<char const *, char const *> &value, type_mask_t type)
+inline void mapped_csv::store_field(unsigned index, string_view &value, type_mask_t type)
 {
     assert(index < column_info_.size());
 

@@ -16,6 +16,27 @@ namespace data_processing {
 
 typedef std::uint8_t type_mask_t;
 
+// a string type of a string of characters
+// represented by a pair of iterators
+class string_view
+{
+  public:
+    string_view(char const *begin,char const *end): begin_(begin),end_(end)
+    { }
+
+    char const *begin() const { return begin_; }
+    char const *end()   const { return end_; }
+
+    size_t const length() const
+    {
+        return std::distance(begin_, end_);
+    }
+
+  private:
+    char const *begin_;
+    char const *end_;
+};
+
 }   // namespace data_processing
 }   // namespace cdmh
 

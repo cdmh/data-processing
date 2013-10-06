@@ -42,9 +42,9 @@ trim(std::pair<std::pair<It,It>, type_mask_t> &src)
     return src;
 }
 
-template<typename It>
-std::pair<std::pair<It, It>, type_mask_t>
-read_field(It &begin, It end)
+inline
+std::pair<string_view, type_mask_t>
+read_field(char const *&begin, char const *end)
 {
     assert(begin != end);
 
@@ -112,7 +112,7 @@ read_field(It &begin, It end)
         rtrim(begin, it);
 
     if (begin == it)
-        return std::make_pair(std::pair<It, It>(begin++, it), null_type);
+        return std::make_pair(string_view(begin++, it), null_type);
 
     // precedences
     incl_type_mask &= ~excl_type_mask;
@@ -122,7 +122,7 @@ read_field(It &begin, It end)
         incl_type_mask &= ~string_type;
 
     assert(detail::bit_count(incl_type_mask) == 1);
-    auto result = std::make_pair(std::pair<It, It>(begin, it), incl_type_mask);
+    auto result = std::make_pair(string_view(begin, it), incl_type_mask);
 
     // update returning 'begin' iterator to the start next field
     begin = it;

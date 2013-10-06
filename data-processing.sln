@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.20827.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dataproc", "dataproc.vcxproj", "{7FC6B274-A377-4120-A84E-2637CE3C2423}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "data-processing", "data-processing.vcxproj", "{7FC6B274-A377-4120-A84E-2637CE3C2423}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

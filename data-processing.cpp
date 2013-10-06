@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include <iostream>
-#include "dataproc.h"
+#include "data-processing.h"
 
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"

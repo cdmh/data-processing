@@ -8,6 +8,13 @@
 namespace cdmh {
 namespace data_processing {
 
+class invalid_column_name : public std::runtime_error
+{
+  public:
+    invalid_column_name() : std::runtime_error("Invalid column name")
+    { }
+};
+
 class dataset
 {
   public:
@@ -22,19 +29,21 @@ class dataset
     class column_data;
     class row_data;
 
-    template<typename U> U              at(size_t row, size_t column)                const;
-    std::vector<cell_value> const      &at(size_t column)                            const;
-    type_mask_t             const       column_type(size_t column)                   const;
-    column_data                         column(size_t column);
+    template<typename U> U              at(size_t row, int column)                const;
+    std::vector<cell_value> const      &at(int column)                            const;
+    type_mask_t             const       column_type(int column)                   const;
+    column_data                         column(int column);
+    column_data                         column(char const *name);
     size_t                  const       columns()                                    const;
-    void                                clear_column(size_t column);
-    template<typename T> std::vector<T> detach_column(size_t column);
-    void                                erase_column(size_t column);
-    template<typename T> std::vector<T> extract_column(size_t column);
+    void                                clear_column(int column);
+    template<typename T> std::vector<T> detach_column(int column);
+    void                                erase_column(int column);
+    template<typename T> std::vector<T> extract_column(int column);
+    size_t                  const       lookup_column(char const *name)              const;
     row_data                            row(size_t row)                              const;
     size_t                  const       rows()                                       const;
-    void                                swap_columns(size_t column1, size_t column2);
-    type_mask_t             const       type_at(size_t row, size_t column)           const;
+    void                                swap_columns(int column1, int column2);
+    type_mask_t             const       type_at(size_t row, int column)           const;
     row_data                            operator[](size_t n)                         const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
@@ -79,7 +88,10 @@ class dataset
     class column_data
     {
       public:
-        column_data(dataset &ds, size_t column) : ds_(ds), column_(column)
+        column_data(dataset &ds, int column) : ds_(ds), column_(column)
+        { }
+
+        column_data(dataset &ds, char const *name) : ds_(ds), column_(ds_.lookup_column(name))
         { }
 
         column_data(column_data const &other) : ds_(other.ds_), column_(other.column_)
@@ -93,7 +105,7 @@ class dataset
         template<typename T> std::vector<T> detach()            { return ds_.detach_column<T>(column_);     }
                              void           erase()             { return ds_.erase_column(column_);         }
         template<typename T> std::vector<T> extract()           { return ds_.extract_column<T>(column_);    }
-                             void           swap(size_t column) { return ds_.swap_columns(column_, column); }
+                             void           swap(int column) { return ds_.swap_columns(column_, column); }
 
         // returns the number of non-null values in the column
         size_t const count() const
@@ -154,8 +166,9 @@ class dataset
         row_data &operator=(row_data const &) = delete;
 
         class cell;
-        cell    operator[](size_t column) const { return cell(ds_, row_, column); }
-        size_t  size()                    const { return ds_.columns();           }
+        cell    operator[](int column)       const { return cell(ds_, row_, column); }
+        cell    operator[](char const *name) const { return cell(ds_, row_, ds_.lookup_column(name)); }
+        size_t  size()                       const { return ds_.columns();           }
 
         class cell
         {
@@ -179,7 +192,7 @@ class dataset
             type_mask_t const type()             const  { return ds_.type_at(row_, column_); }
 
           protected:
-            cell(dataset const &ds,size_t row,size_t column): ds_(ds), row_(row),column_(column)
+            cell(dataset const &ds,size_t row,int column): ds_(ds), row_(row),column_(column)
             { }
 
             friend row_data;
@@ -239,12 +252,12 @@ inline dataset::~dataset()
 
 template<typename T>
 inline
-T dataset::at(size_t row, size_t column) const
+T dataset::at(size_t row, int column) const
 {
     return columns_[column].values[row].get<T>();
 }
 
-inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
+inline std::vector<dataset::cell_value> const &dataset::at(int column) const
 {
     return columns_[column].values;
 }
@@ -264,9 +277,14 @@ dataset::create_column(type_mask_t type, std::string const &name)
     return std::bind(&dataset::add_column_integer_data, this, columns_.size()-1, std::placeholders::_1);
 }
 
-inline dataset::column_data dataset::column(size_t column)
+inline dataset::column_data dataset::column(int column)
 {
     return column_data(*this, column);
+}
+
+inline dataset::column_data dataset::column(char const *name)
+{
+    return column_data(*this, name);
 }
 
 inline size_t const dataset::columns() const
@@ -274,19 +292,19 @@ inline size_t const dataset::columns() const
     return columns_.size();
 }
 
-inline type_mask_t const dataset::column_type(size_t column) const
+inline type_mask_t const dataset::column_type(int column) const
 {
     return columns_[column].type;
 }
 
-inline void dataset::clear_column(size_t column)
+inline void dataset::clear_column(int column)
 {
     for (auto &value : columns_[column].values)
         value.clear();
 }
 
 template<typename T>
-inline std::vector<T> dataset::extract_column(size_t column)
+inline std::vector<T> dataset::extract_column(int column)
 {
     std::vector<T> result;
     result.reserve(columns_[column].values.size());
@@ -296,21 +314,33 @@ inline std::vector<T> dataset::extract_column(size_t column)
 }
 
 template<typename T>
-inline std::vector<T> dataset::detach_column(size_t column)
+inline std::vector<T> dataset::detach_column(int column)
 {
     std::vector<T> result = extract_column<T>(column);
     erase_column(column);
     return result;
 }
 
-inline void dataset::erase_column(size_t column)
+inline void dataset::erase_column(int column)
 {
     columns_.erase(columns_.begin() + column);
 }
 
-inline void dataset::swap_columns(size_t column1, size_t column2)
+inline void dataset::swap_columns(int column1, int column2)
 {
     std::swap(columns_[column1], columns_[column2]);
+}
+
+inline size_t const dataset::lookup_column(char const *name) const
+{
+    size_t index = 0;
+    for (auto const &column : columns_)
+    {
+        if (column.name == name)
+            return index;
+        ++index;
+    }
+    throw invalid_column_name();
 }
 
 inline dataset::row_data dataset::row(size_t row) const
@@ -329,7 +359,7 @@ inline dataset::row_data dataset::operator[](size_t n) const
     return row(n);
 }
 
-inline type_mask_t const dataset::type_at(size_t row, size_t column) const
+inline type_mask_t const dataset::type_at(size_t row, int column) const
 {
     return columns_[column].values[row].type();
 }

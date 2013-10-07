@@ -78,7 +78,7 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
 TEST_CASE("delimited_data/attach to string")
 {
     char const *data =
-        "int1,int2,double1,int3,string\n"
+        "col1,col2,col3,col4,col5\n"
         "192,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
         "837,2982,83.326,9838,\"243 837 636 233 222 829\"\n"
         ;
@@ -87,10 +87,11 @@ TEST_CASE("delimited_data/attach to string")
     dd.attach(data);
     auto ds = dd.create_dataset();
     CHECK(ds.columns() == 5);
+    CHECK_THROWS_AS(ds.column("column333"), cdmh::data_processing::invalid_column_name);
 
     SECTION("data access") {
         CHECK((std::uint32_t)ds[0][0] == 192);
-        CHECK((std::uint32_t)ds[0][1] == 1229);
+        CHECK((std::uint32_t)ds[0]["col2"] == 1229);
         CHECK((double)ds[0][2] == 22.345);
         CHECK(ds[0][4].get<std::string>().length() == 23);
     }
@@ -173,9 +174,9 @@ TEST_CASE("mapped_csv", "")
     f << ds;
 
     // the column mean ignores null values, so will always be greater
-    std::cout << "Mean without NULLs: " << ds.column(7).mean() << "\n";
-    std::cout << "Mean with NULLs   : " << ds.column(7).sum<double>() / ds.rows() << "\n";
-    REQUIRE(ds.column(7).mean() > ds.column(7).sum<double>() / ds.rows());
+    std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
+    std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
+    REQUIRE(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
 
     std::cout << "\n";
 }

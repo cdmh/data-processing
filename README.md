@@ -31,7 +31,7 @@ Other functions are provided, which ignore cells with no value.
 ###Extracting and Deleting column data
 If a column of data is no longer needed, it can be removed from the dataset by calling `erase`.
 
-    ds.column(2).erase();
+    ds.column("image_data").erase();
 
 Data can be extracted from a data column using `extract`.
 

@@ -106,10 +106,10 @@ TEST_CASE("delimited_data/attach to string")
     std::cout << ds;
 
     auto extracted_data = ds.column(2).extract<std::uint32_t>();
-
-    auto column = ds.column(2).detach<std::uint32_t>();
+    auto column_data = ds.column(2).detach<std::uint32_t>();
     std::cout << ds;
     CHECK(ds.columns() == 3);
+    CHECK(extracted_data == column_data);
 }
 
 TEST_CASE("mapped_csv", "")

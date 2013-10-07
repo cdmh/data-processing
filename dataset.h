@@ -23,7 +23,6 @@ class dataset
     dataset(dataset const &other)                = delete;  // defaults are not safe because
     dataset &operator=(dataset &&other) noexcept = delete;  // of dynamic memory allocation
     dataset &operator=(dataset const &other)     = delete;  // in the union
-    ~dataset();
 
     class cell_value;
     class column_data;
@@ -60,6 +59,25 @@ class dataset
         };
 
       public:
+        cell_value(cell_value &&other)
+        {
+            memcpy(this, &other, sizeof(*this));
+            memset(&other, 0, sizeof(*this));
+        }
+
+        cell_value(cell_value const &other)
+        {
+            *this = other;
+        }
+
+        cell_value &operator=(cell_value const &other)
+        {
+            memcpy(this, &other, sizeof(*this));
+            if (is_string())
+                string_ = new std::string(*other.string_);
+            return *this;
+        }
+
         cell_value(type_mask_t type, double dbl)         : type_(type), double_(dbl)                        { assert(type == double_type  ||  (type == null_type  &&  double_  == 0.0));  }
         cell_value(type_mask_t type, size_t integer)     : type_(type), integer_(integer)                   { assert(type == integer_type ||  (type == null_type  &&  integer_ == 0));    }
         cell_value(type_mask_t type, std::string string) : type_(type), string_(new std::string(std::forward<std::string>(string)))    { assert(type == string_type  ||  type == null_type);                         }
@@ -75,6 +93,11 @@ class dataset
         template<>           std::string          get()        const  { assert(type_ == string_type);                           return *string_;         }
         template<>           char const *         get()        const  { assert(type_ == string_type);                           return string_->c_str(); }
         template<>           std::uint32_t        get()        const  { assert(type_ == integer_type  ||  type_ == null_type);  return integer_;         }
+
+        ~cell_value()
+        {
+            clear();
+        }
 
         void clear()
         {
@@ -241,15 +264,6 @@ inline dataset::dataset(dataset &&other) noexcept
     std::swap(columns_, other.columns_);
 }
 
-inline dataset::~dataset()
-{
-    assert_valid();
-    for (auto &column : columns_)
-        if (column.type == string_type)
-            for (auto &value : column.values)
-                value.clear();
-}
-
 template<typename T>
 inline
 T dataset::at(size_t row, int column) const
@@ -378,23 +392,21 @@ inline void dataset::assert_valid() const
 
 inline void dataset::add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    columns_[index].values.push_back(cell_value(value.second, std::string(value.first.begin(), value.first.end())));
+    columns_[index].values.emplace_back(value.second, std::string(value.first.begin(), value.first.end()));
 }
 
 inline void dataset::add_column_double_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    columns_[index].values.push_back(
-        cell_value(
-            value.second,
-            strtod(value.first.begin(), nullptr)));
+    columns_[index].values.emplace_back(
+        value.second,
+        strtod(value.first.begin(), nullptr));
 }
 
 inline void dataset::add_column_integer_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    columns_[index].values.push_back(
-        cell_value(
-            value.second,
-            size_t(atol(value.first.begin()))));
+    columns_[index].values.emplace_back(
+        value.second,
+        size_t(atol(value.first.begin())));
 }
 
 

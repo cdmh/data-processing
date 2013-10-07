@@ -98,15 +98,24 @@ TEST_CASE("mapped_csv", "")
     CHECK(ds.rows() == rows_expected);
     REQUIRE(ds.columns() == 31);
 
-    char const *image = ds[0][30];
-    image = ds[1][30];   // access row data
-    image = ds[2][30];
-    image = ds.row(3)[30];
+    // access to string data through casting or calling get<>()
+    std::string image = (std::string)ds[0][30];
+    REQUIRE(!image.empty());
+    image = ds[1][30].get<std::string>();   // access row data
+    REQUIRE(!image.empty());
+    image = ds[2][30].get<std::string>();
+    REQUIRE(!image.empty());
+    image = ds.row(3)[30].get<std::string>();
+    REQUIRE(!image.empty());
+
+    // access to C-style string is also supported
+    char const *img = ds[3][30];
+    REQUIRE(image.compare(img) == 0);
 
     std::ostringstream stream;
     auto a = ds[3];
-    stream << a[0] << " " << a[1] << " ";       // test value serialisation
-    stream << ds[210];                   // test row serialisation
+    stream << a[0] << " " << a[1] << " ";   // test value serialisation
+    stream << ds[210];                      // test row serialisation
 
     REQUIRE(ds.column(0).count() == ds.rows());      // column 0 has no null values
     REQUIRE(ds.column(28).count() == ds.rows()-1);   // column 28 has a null value
@@ -124,6 +133,7 @@ int main(int argc, char * const argv[])
 {
 #if defined(_MSC_VER)  &&  defined(_DEBUG)
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+//    _CrtSetBreakAlloc(6012);
 #endif
 
     Catch::Session session;

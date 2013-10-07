@@ -1,6 +1,10 @@
 #include <algorithm>    // count_if
 #include <numeric>      // accumulate
 
+#if _MSC_VER <= 1800
+#define noexcept
+#endif
+
 namespace cdmh {
 namespace data_processing {
 
@@ -35,25 +39,24 @@ class dataset
     };
 
     explicit dataset(size_t num_columns = 0);
-    dataset(dataset &&other);
-    dataset(dataset const &other)            = delete;  // defaults are not safe because
-    dataset &operator=(dataset &&other)      = delete;  // of dynamic memory allocation
-    dataset &operator=(dataset const &other) = delete;  // in the union
+    dataset(dataset &&other) noexcept;
+    dataset(dataset const &other)                = delete;  // defaults are not safe because
+    dataset &operator=(dataset &&other) noexcept = delete;  // of dynamic memory allocation
+    dataset &operator=(dataset const &other)     = delete;  // in the union
     ~dataset();
 
-    size_t      const columns()                  const;
-    size_t      const rows()                     const;
-    type_mask_t const column_type(size_t column) const;
+    class column_data;
+    class row_data;
 
-    template<typename U>
-    U at(size_t row, size_t column) const;
-
-    std::vector<cell_value> const &at(size_t column) const
-    {
-        return columns_[column].second;
-    }
-
-    type_mask_t const type_at(size_t row, size_t column) const;
+    template<typename U> U         at(size_t row, size_t column)        const;
+    std::vector<cell_value> const &at(size_t column)                    const;
+    type_mask_t             const column_type(size_t column)            const;
+    column_data                   column(size_t column)                 const;
+    size_t                  const columns()                             const;
+    row_data                      row(size_t row)                       const;
+    size_t                  const rows()                                const;
+    type_mask_t             const type_at(size_t row, size_t column)    const;
+    row_data                      operator[](size_t n)                  const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
     create_column(type_mask_t type);
@@ -171,21 +174,6 @@ class dataset
         size_t  const  row_;
     };
 
-    row_data row(size_t row) const
-    {
-        return row_data(*this, row);
-    }
-
-    column_data column(size_t column) const
-    {
-        return column_data(*this, column);
-    }
-
-    row_data operator[](size_t n) const
-    {
-        return row(n);
-    }
-
   private:
     void add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value);
     void add_column_double_data(size_t index, std::pair<string_view, type_mask_t> value);
@@ -207,7 +195,7 @@ inline dataset::dataset(size_t num_columns)
         columns_.reserve(num_columns);
 }
 
-inline dataset::dataset(dataset &&other)
+inline dataset::dataset(dataset &&other) noexcept
 {
     assert_valid();
     std::swap(columns_, other.columns_);
@@ -222,9 +210,68 @@ inline dataset::~dataset()
                 delete[] value.get<char const *>();
 }
 
+template<>
+inline
+char const *dataset::at(size_t row, size_t column) const
+{
+    assert(type_at(row, column) ==string_type);
+    return columns_[column].second[row].get<char const *>();
+}
+
+template<>
+inline
+double dataset::at(size_t row, size_t column) const
+{
+    assert(type_at(row, column) == double_type);
+    return columns_[column].second[row].get<double>();
+}
+
+template<>
+inline
+size_t dataset::at(size_t row, size_t column) const
+{
+    assert(type_at(row, column) ==integer_type);
+    return columns_[column].second[row].get<std::uint32_t>();
+}
+
+inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
+{
+    return columns_[column].second;
+}
+
+inline
+std::function<void (std::pair<string_view, type_mask_t>)>
+dataset::create_column(type_mask_t type)
+{
+    columns_.push_back(std::make_pair(type, std::vector<cell_value>()));
+
+    if (type == string_type)
+        return std::bind(&dataset::add_column_string_data, this, columns_.size()-1, std::placeholders::_1);
+    else if (type == double_type)
+        return std::bind(&dataset::add_column_double_data, this, columns_.size()-1, std::placeholders::_1);
+
+    assert(type == integer_type);
+    return std::bind(&dataset::add_column_integer_data, this, columns_.size()-1, std::placeholders::_1);
+}
+
+inline dataset::column_data dataset::column(size_t column) const
+{
+    return column_data(*this, column);
+}
+
 inline size_t const dataset::columns() const
 {
     return columns_.size();
+}
+
+inline type_mask_t const dataset::column_type(size_t column) const
+{
+    return columns_[column].first;
+}
+
+inline dataset::row_data dataset::row(size_t row) const
+{
+    return row_data(*this, row);
 }
 
 inline size_t const dataset::rows() const
@@ -233,35 +280,26 @@ inline size_t const dataset::rows() const
     return columns_.size()==0? 0 : columns_[0].second.size();
 }
 
-inline type_mask_t const dataset::column_type(size_t column) const
+inline dataset::row_data dataset::operator[](size_t n) const
 {
-    return columns_[column].first;
+    return row(n);
 }
 
-template<>
-char const *dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) ==string_type);
-    return columns_[column].second[row].get<char const *>();
-}
-
-template<>
-double dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) == double_type);
-    return columns_[column].second[row].get<double>();
-}
-
-template<>
-size_t dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) ==integer_type);
-    return columns_[column].second[row].get<std::uint32_t>();
-}
-
-type_mask_t const dataset::type_at(size_t row, size_t column) const
+inline type_mask_t const dataset::type_at(size_t row, size_t column) const
 {
     return columns_[column].second[row].type();
+}
+
+inline void dataset::assert_valid() const
+{
+#ifndef NDEBUG
+    if (columns_.size() > 0)
+    {
+        auto const size = columns_[0].second.size();
+        for (size_t loop=1; loop<columns_.size(); ++loop)
+            assert(columns_[loop].second.size() == size);
+    }
+#endif
 }
 
 inline void dataset::add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value)
@@ -287,33 +325,6 @@ inline void dataset::add_column_integer_data(size_t index, std::pair<string_view
         cell_value(
             value.second,
             size_t(atol(value.first.begin()))));
-}
-
-inline void dataset::assert_valid() const
-{
-#ifndef NDEBUG
-    if (columns_.size() > 0)
-    {
-        auto const size = columns_[0].second.size();
-        for (size_t loop=1; loop<columns_.size(); ++loop)
-            assert(columns_[loop].second.size() == size);
-    }
-#endif
-}
-
-inline
-std::function<void (std::pair<string_view, type_mask_t>)>
-dataset::create_column(type_mask_t type)
-{
-    columns_.push_back(std::make_pair(type, std::vector<cell_value>()));
-
-    if (type == string_type)
-        return std::bind(&dataset::add_column_string_data, this, columns_.size()-1, std::placeholders::_1);
-    else if (type == double_type)
-        return std::bind(&dataset::add_column_double_data, this, columns_.size()-1, std::placeholders::_1);
-
-    assert(type == integer_type);
-    return std::bind(&dataset::add_column_integer_data, this, columns_.size()-1, std::placeholders::_1);
 }
 
 

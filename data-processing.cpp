@@ -168,12 +168,14 @@ TEST_CASE("mapped_csv", "")
     stream << a[0] << " " << a[1] << " ";   // test value serialisation
     stream << ds[210];                      // test row serialisation
 
-    REQUIRE(ds.column(0).count() == ds.rows());      // column 0 has no null values
-    REQUIRE(ds.column(28).count() == ds.rows()-1);   // column 28 has a null value
-    REQUIRE(ds.column(29).count() == ds.rows()-1);   // column 29 has a null value
+    std::ofstream f("out.csv");
+    ds.column(30).erase();
+    f << ds;
 
     // the column mean ignores null values, so will always be greater
-    REQUIRE(ds.column(28).mean() > ds.column(28).sum<double>() / ds.rows());
+    std::cout << "Mean without NULLs: " << ds.column(7).mean() << "\n";
+    std::cout << "Mean with NULLs   : " << ds.column(7).sum<double>() / ds.rows() << "\n";
+    REQUIRE(ds.column(7).mean() > ds.column(7).sum<double>() / ds.rows());
 
     std::cout << "\n";
 }

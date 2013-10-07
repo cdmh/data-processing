@@ -75,7 +75,6 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
     CHECK(std::distance(field.first.begin(), field.first.end()) == 15);
 }
 
-
 TEST_CASE("delimited_data/attach to string")
 {
     char const *data =
@@ -86,30 +85,48 @@ TEST_CASE("delimited_data/attach to string")
 
     cdmh::data_processing::delimited_data dd;
     dd.attach(data);
-
     auto ds = dd.create_dataset();
-    CHECK((std::uint32_t)ds[0][0] == 192);
-    CHECK((std::uint32_t)ds[0][1] == 1229);
-    CHECK(ds[0][4].get<std::string>().length() == 23);
-    CHECK(ds.column(0).mean() == 514.5);
-    CHECK(fabs(ds.column(2).mean() - 52.8355) < 0.00001);
-
     CHECK(ds.columns() == 5);
-    CHECK(ds.column(0).count_null() == 0);
 
-    ds.column(2).clear();
-    CHECK(ds.column(2).count_null() == ds.rows());
-    std::cout << ds;
+    SECTION("data access") {
+        CHECK((std::uint32_t)ds[0][0] == 192);
+        CHECK((std::uint32_t)ds[0][1] == 1229);
+        CHECK((double)ds[0][2] == 22.345);
+        CHECK(ds[0][4].get<std::string>().length() == 23);
+    }
 
-    ds.column(2).erase();
-    CHECK(ds.columns() == 4);
-    std::cout << ds;
+    SECTION("averages") {
+        CHECK(ds.column(0).mean() == 514.5);
+        CHECK(fabs(ds.column(2).mean() - 52.8355) < 0.00001);
+    }
 
-    auto extracted_data = ds.column(2).extract<std::uint32_t>();
-    auto column_data = ds.column(2).detach<std::uint32_t>();
-    std::cout << ds;
-    CHECK(ds.columns() == 3);
-    CHECK(extracted_data == column_data);
+    SECTION("swap columns") {
+        ds.column(2).swap(0);
+        CHECK(ds.column(2).mean() == 514.5);
+        CHECK(fabs(ds.column(0).mean() - 52.8355) < 0.00001);
+    }
+
+    SECTION("averages") {
+        CHECK(ds.column(0).count_null() == 0);
+    }
+
+    SECTION("clear columns") {
+        ds.column(2).clear();
+        CHECK(ds.column(2).count_null() == ds.rows());
+        std::cout << ds;
+
+        ds.column(2).erase();
+        CHECK(ds.columns() == 4);
+        std::cout << ds;
+    }
+
+    SECTION("extracting data") {
+        auto extracted_data = ds.column(0).extract<std::uint32_t>();
+        auto column_data = ds.column(0).detach<std::uint32_t>();
+        std::cout << ds;
+        CHECK(ds.columns() == 4);
+        CHECK(extracted_data == column_data);
+    }
 }
 
 TEST_CASE("mapped_csv", "")

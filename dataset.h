@@ -22,19 +22,20 @@ class dataset
     class column_data;
     class row_data;
 
-    template<typename U> U              at(size_t row, size_t column)         const;
-    std::vector<cell_value> const      &at(size_t column)                     const;
-    type_mask_t             const       column_type(size_t column)            const;
+    template<typename U> U              at(size_t row, size_t column)                const;
+    std::vector<cell_value> const      &at(size_t column)                            const;
+    type_mask_t             const       column_type(size_t column)                   const;
     column_data                         column(size_t column);
-    size_t                  const       columns()                             const;
+    size_t                  const       columns()                                    const;
     void                                clear_column(size_t column);
     template<typename T> std::vector<T> detach_column(size_t column);
     void                                erase_column(size_t column);
     template<typename T> std::vector<T> extract_column(size_t column);
-    row_data                            row(size_t row)                       const;
-    size_t                  const       rows()                                const;
-    type_mask_t             const       type_at(size_t row, size_t column)    const;
-    row_data                            operator[](size_t n)                  const;
+    row_data                            row(size_t row)                              const;
+    size_t                  const       rows()                                       const;
+    void                                swap_columns(size_t column1, size_t column2);
+    type_mask_t             const       type_at(size_t row, size_t column)           const;
+    row_data                            operator[](size_t n)                         const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
     create_column(type_mask_t type, std::string const &name);
@@ -88,6 +89,12 @@ class dataset
         column_data &operator=(column_data const &other) = delete;
         column_data &operator=(column_data &&other)      = delete;
 
+                             void           clear()             { ds_.clear_column(column_);                }
+        template<typename T> std::vector<T> detach()            { return ds_.detach_column<T>(column_);     }
+                             void           erase()             { return ds_.erase_column(column_);         }
+        template<typename T> std::vector<T> extract()           { return ds_.extract_column<T>(column_);    }
+                             void           swap(size_t column) { return ds_.swap_columns(column_, column); }
+
         // returns the number of non-null values in the column
         size_t const count() const
         {
@@ -110,28 +117,6 @@ class dataset
                 [](cell_value const &cell) {
                     return cell.is_null();
                 });
-        }
-
-        void clear()
-        {
-            ds_.clear_column(column_);
-        }
-
-        template<typename T>
-        std::vector<T> detach()
-        {
-            return ds_.detach_column<T>(column_);
-        }
-
-        template<typename T>
-        std::vector<T> extract()
-        {
-            return ds_.extract_column<T>(column_);
-        }
-
-        void erase()
-        {
-            return ds_.erase_column(column_);
         }
 
         double const mean() const
@@ -321,6 +306,11 @@ inline std::vector<T> dataset::detach_column(size_t column)
 inline void dataset::erase_column(size_t column)
 {
     columns_.erase(columns_.begin() + column);
+}
+
+inline void dataset::swap_columns(size_t column1, size_t column2)
+{
+    std::swap(columns_[column1], columns_[column2]);
 }
 
 inline dataset::row_data dataset::row(size_t row) const

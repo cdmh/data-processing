@@ -105,9 +105,9 @@ TEST_CASE("delimited_data/attach to string")
     CHECK(ds.columns() == 4);
     std::cout << ds;
 
-    std::vector<std::uint32_t> extracted_data = ds.column(2).extract<std::uint32_t>();
+    auto extracted_data = ds.column(2).extract<std::uint32_t>();
 
-    std::vector<std::uint32_t> column = ds.column(2).detach<std::uint32_t>();
+    auto column = ds.column(2).detach<std::uint32_t>();
     std::cout << ds;
     CHECK(ds.columns() == 3);
 }

@@ -35,11 +35,11 @@ If a column of data is no longer needed, it can be removed from the dataset by c
 
 Data can be extracted from a data column using `extract`.
 
-    std::vector<std::uint32_t> extracted_data = ds.column(2).extract<std::uint32_t>();
+    auto extracted_data = ds.column(2).extract<std::uint32_t>();
 
 If the column no longer needs to be a part of the dataset, then calling `detach` will `extract` and `erase` the column with a single call.
 
-    std::vector<std::uint32_t> column = ds.column(2).detach<std::uint32_t>();
+    auto column = ds.column(2).detach<std::uint32_t>();
 
 
 #Serialization

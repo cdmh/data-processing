@@ -22,16 +22,19 @@ class dataset
     class column_data;
     class row_data;
 
-    template<typename U> U         at(size_t row, size_t column)        const;
-    std::vector<cell_value> const &at(size_t column)                    const;
-    type_mask_t             const column_type(size_t column)            const;
-    column_data                   column(size_t column);
-    size_t                  const columns()                             const;
-    void                          clear_column(size_t column);
-    row_data                      row(size_t row)                       const;
-    size_t                  const rows()                                const;
-    type_mask_t             const type_at(size_t row, size_t column)    const;
-    row_data                      operator[](size_t n)                  const;
+    template<typename U> U              at(size_t row, size_t column)         const;
+    std::vector<cell_value> const      &at(size_t column)                     const;
+    type_mask_t             const       column_type(size_t column)            const;
+    column_data                         column(size_t column);
+    size_t                  const       columns()                             const;
+    void                                clear_column(size_t column);
+    template<typename T> std::vector<T> detach_column(size_t column);
+    void                                erase_column(size_t column);
+    template<typename T> std::vector<T> extract_column(size_t column);
+    row_data                            row(size_t row)                       const;
+    size_t                  const       rows()                                const;
+    type_mask_t             const       type_at(size_t row, size_t column)    const;
+    row_data                            operator[](size_t n)                  const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
     create_column(type_mask_t type, std::string const &name);
@@ -112,6 +115,23 @@ class dataset
         void clear()
         {
             ds_.clear_column(column_);
+        }
+
+        template<typename T>
+        std::vector<T> detach()
+        {
+            return ds_.detach_column<T>(column_);
+        }
+
+        template<typename T>
+        std::vector<T> extract()
+        {
+            return ds_.extract_column<T>(column_);
+        }
+
+        void erase()
+        {
+            return ds_.erase_column(column_);
         }
 
         double const mean() const
@@ -232,36 +252,11 @@ inline dataset::~dataset()
                 value.clear();
 }
 
-template<>
+template<typename T>
 inline
-std::string dataset::at(size_t row, size_t column) const
+T dataset::at(size_t row, size_t column) const
 {
-    assert(type_at(row, column) ==string_type);
-    return columns_[column].values[row].get<std::string>();
-}
-
-template<>
-inline
-char const *dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) == string_type);
-    return columns_[column].values[row].get<char const *>();
-}
-
-template<>
-inline
-double dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) == double_type);
-    return columns_[column].values[row].get<double>();
-}
-
-template<>
-inline
-size_t dataset::at(size_t row, size_t column) const
-{
-    assert(type_at(row, column) ==integer_type);
-    return columns_[column].values[row].get<std::uint32_t>();
+    return columns_[column].values[row].get<T>();
 }
 
 inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
@@ -303,6 +298,29 @@ inline void dataset::clear_column(size_t column)
 {
     for (auto &value : columns_[column].values)
         value.clear();
+}
+
+template<typename T>
+inline std::vector<T> dataset::extract_column(size_t column)
+{
+    std::vector<T> result;
+    result.reserve(columns_[column].values.size());
+    for (auto &value : columns_[column].values)
+        result.push_back(value.get<T>());
+    return result;
+}
+
+template<typename T>
+inline std::vector<T> dataset::detach_column(size_t column)
+{
+    std::vector<T> result = extract_column<T>(column);
+    erase_column(column);
+    return result;
+}
+
+inline void dataset::erase_column(size_t column)
+{
+    columns_.erase(columns_.begin() + column);
 }
 
 inline dataset::row_data dataset::row(size_t row) const

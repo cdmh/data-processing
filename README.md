@@ -5,7 +5,7 @@ This repository will build into a library to ease manipulation and managing data
 Stable releases will be merged into the `master` branch.
 See the `develop` branch for current status.
 
-## Dataset
+## Datasets
 A `dataset` is a grid representation of imported CSV data, either from a file or from a memory buffer. Each `column` has a defined type and each`cell` (a cross section of a row and a column) also has a defined, which is either the same as the column type, or `null_type` where the column has no value.
 
 ###Column-wise operations
@@ -27,6 +27,20 @@ Other functions are provided, which ignore cells with no value.
 * `count_null()` returns the number of empty cells in a column
 * `mean()` calculates the mean average of non-empty cells in a column
 * `sum()` calculates the mean average of non-empty cells in a column
+
+###Extracting and Deleting column data
+If a column of data is no longer needed, it can be removed from the dataset by calling `erase`.
+
+    ds.column(2).erase();
+
+Data can be extracted from a data column using `extract`.
+
+    std::vector<std::uint32_t> extracted_data = ds.column(2).extract<std::uint32_t>();
+
+If the column no longer needs to be a part of the dataset, then calling `detach` will `extract` and `erase` the column with a single call.
+
+    std::vector<std::uint32_t> column = ds.column(2).detach<std::uint32_t>();
+
 
 #Serialization
 A dataset can easily be serialized to a stream as a CSV data file

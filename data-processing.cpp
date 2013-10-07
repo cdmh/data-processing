@@ -101,8 +101,15 @@ TEST_CASE("delimited_data/attach to string")
     CHECK(ds.column(2).count_null() == ds.rows());
     std::cout << ds;
 
-//    ds.detach_column(2);
-//    CHECK(ds.columns() == 4);
+    ds.column(2).erase();
+    CHECK(ds.columns() == 4);
+    std::cout << ds;
+
+    std::vector<std::uint32_t> extracted_data = ds.column(2).extract<std::uint32_t>();
+
+    std::vector<std::uint32_t> column = ds.column(2).detach<std::uint32_t>();
+    std::cout << ds;
+    CHECK(ds.columns() == 3);
 }
 
 TEST_CASE("mapped_csv", "")

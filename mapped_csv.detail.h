@@ -129,7 +129,7 @@ read_field(char const *&begin, char const *end)
     if (in_quotes)
     {
         assert(*begin == '\"');
-        ltrim(++begin, it);
+        ltrim(++begin, end);
     }
 
     if (begin != end  &&  *begin == ',')

@@ -4,19 +4,18 @@ namespace cdmh {
 
 namespace data_processing {
 
-class mapped_csv
+class delimited_data
 {
   public:
-    explicit mapped_csv(char const * const filename)
-      : file_(filename, readonly),
-        mmf_(file_, readonly)
-    {
-    }
+    delimited_data(): record_count_(0) { }
+
+    template<typename It>
+    bool const attach(It begin, It end, std::uint64_t max_records=0);
+
+    bool const attach(char const *data, std::uint64_t max_records=0);
 
     dataset             create_dataset(bool destructive = true);
-    bool          const read(std::uint64_t max_records=0);
     std::uint64_t const size() const;
-
 
   protected:
     void create_column(unsigned index, string_view &name, type_mask_t /*type*/);
@@ -26,10 +25,8 @@ class mapped_csv
     bool const process_record(It &begin, It end, Fn fn);
 
   private:
-    typedef std::pair<string_view, type_mask_t>    column_info_t;
+    typedef std::pair<string_view, type_mask_t> column_info_t;
 
-    file<char>                 file_;
-    memory_mapped_file<char>   mmf_;
     std::uint64_t              record_count_;
     std::vector<column_info_t> column_info_;
     std::vector<type_mask_t>   incl_type_mask_;
@@ -38,7 +35,39 @@ class mapped_csv
     std::vector<string_list_t> column_values_;
 };
 
-inline void mapped_csv::create_column(unsigned index, string_view &name, type_mask_t /*type*/)
+template<typename It>
+inline
+bool const delimited_data::attach(It begin, It end, std::uint64_t max_records)
+{
+    typedef 
+    std::function<void (unsigned, string_view &, type_mask_t)>
+    store_fn_t;
+
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using std::placeholders::_3;
+    store_fn_t store         = std::bind(&delimited_data::create_column, this, _1, _2, _3);
+    store_fn_t store_fields  = std::bind(&delimited_data::store_field, this, _1, _2, _3);
+
+    while (begin != end  &&  (max_records == 0  ||  size() < max_records))
+    {
+        auto eol = std::find_if(begin, end, [](char ch) { return ch == '\r'  ||  ch == '\n'; });
+        process_record(begin, eol, store);
+        assert(begin == eol);
+        detail::ltrim(begin, end);
+        store = store_fields;
+    }
+
+    return true;
+}
+
+inline bool const delimited_data::attach(char const *data, std::uint64_t max_records)
+{
+    return attach(data, data+strlen(data), max_records);
+}
+
+
+inline void delimited_data::create_column(unsigned index, string_view &name, type_mask_t /*type*/)
 {
 #ifdef NDEBUG
     index;
@@ -49,7 +78,7 @@ inline void mapped_csv::create_column(unsigned index, string_view &name, type_ma
     column_values_.push_back(string_list_t());
 }
 
-inline dataset mapped_csv::create_dataset(bool destructive)
+inline dataset delimited_data::create_dataset(bool destructive)
 {
     dataset ds(column_info_.size());
     for (unsigned index=0; index<column_info_.size(); ++index)
@@ -68,8 +97,6 @@ inline dataset mapped_csv::create_dataset(bool destructive)
         std::vector<column_info_t>().swap(column_info_);
         std::vector<type_mask_t>().swap(incl_type_mask_);
         std::vector<string_list_t>().swap(column_values_);
-        file_.close();
-        mmf_.release();
     }
 
     return ds;
@@ -77,7 +104,7 @@ inline dataset mapped_csv::create_dataset(bool destructive)
 
 template<typename It, typename Fn>
 inline
-bool const mapped_csv::process_record(It &begin, It end, Fn fn)
+bool const delimited_data::process_record(It &begin, It end, Fn fn)
 {
     for (unsigned index=0; begin!=end; ++index)
     {
@@ -88,43 +115,12 @@ bool const mapped_csv::process_record(It &begin, It end, Fn fn)
     return true;
 }
 
-inline bool const mapped_csv::read(std::uint64_t max_records)
-{
-    typedef 
-    std::function<void (unsigned, string_view &, type_mask_t)>
-    store_fn_t;
-
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using std::placeholders::_3;
-    store_fn_t store         = std::bind(&mapped_csv::create_column, this, _1, _2, _3);
-    store_fn_t store_fields  = std::bind(&mapped_csv::store_field, this, _1, _2, _3);
-
-    if (!mmf_.is_mapped())
-        return false;
-
-    char const *it = mmf_.get();
-    char const *ite = it + file_.size();
-
-    record_count_ = 0;
-    while (it != ite  &&  (max_records == 0  ||  size() < max_records))
-    {
-        auto eol = std::find(it,ite,'\r');
-        process_record(it, eol, store);
-        assert(it == eol);
-        detail::ltrim(it, ite);
-        store = store_fields;
-    }
-
-    return true;
-}
-
-inline std::uint64_t const mapped_csv::size() const
+inline std::uint64_t const delimited_data::size() const
 {
     return record_count_;
 }
 
-inline void mapped_csv::store_field(unsigned index, string_view &value, type_mask_t type)
+inline void delimited_data::store_field(unsigned index, string_view &value, type_mask_t type)
 {
     assert(index < column_info_.size());
 
@@ -143,6 +139,51 @@ inline void mapped_csv::store_field(unsigned index, string_view &value, type_mas
 
     column_values_[index].push_back(std::make_pair(value, type));
     assert(column_info_.size() == column_values_.size());
+}
+
+
+
+
+
+
+class mapped_csv : public delimited_data
+{
+  public:
+    explicit mapped_csv(char const * const filename)
+      : file_(filename, readonly),
+        mmf_(file_, readonly)
+    {
+    }
+    ~mapped_csv();
+    void close();
+
+    file<char>                 file_;
+    memory_mapped_file<char>   mmf_;
+
+    bool          const read(std::uint64_t max_records=0);
+};
+
+inline mapped_csv::~mapped_csv()
+{
+    close();
+}
+
+inline void mapped_csv::close()
+{
+    file_.close();
+    mmf_.release();
+}
+
+inline bool const mapped_csv::read(std::uint64_t max_records)
+{
+    if (!mmf_.is_mapped())
+        return false;
+
+    char const *it = mmf_.get();
+    char const *ite = it + file_.size();
+    attach(it, ite, max_records);
+
+    return true;
 }
 
 }   // namespace data_processing

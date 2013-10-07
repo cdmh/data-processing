@@ -76,7 +76,24 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
 }
 
 
+TEST_CASE("delimited_data/attach to string")
+{
+    char const *data =
+        "int1,int2,double1,int3,string\n"
+        "192,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
+        "837,2982,83.326,9838,\"243 837 636 233 222 829\"\n"
+        ;
 
+    cdmh::data_processing::delimited_data dd;
+    dd.attach(data);
+
+    auto ds = dd.create_dataset();
+    CHECK((std::uint32_t)ds[0][0] == 192);
+    CHECK((std::uint32_t)ds[0][1] == 1229);
+    CHECK(ds[0][4].get<std::string>().length() == 23);
+    CHECK(ds.column(0).mean() == 514.5);
+    CHECK(fabs(ds.column(2).mean() - 52.8355) < 0.00001);
+}
 
 TEST_CASE("mapped_csv", "")
 {

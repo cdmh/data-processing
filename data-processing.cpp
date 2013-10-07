@@ -93,6 +93,16 @@ TEST_CASE("delimited_data/attach to string")
     CHECK(ds[0][4].get<std::string>().length() == 23);
     CHECK(ds.column(0).mean() == 514.5);
     CHECK(fabs(ds.column(2).mean() - 52.8355) < 0.00001);
+
+    CHECK(ds.columns() == 5);
+    CHECK(ds.column(0).count_null() == 0);
+
+    ds.column(2).clear();
+    CHECK(ds.column(2).count_null() == ds.rows());
+    std::cout << ds;
+
+//    ds.detach_column(2);
+//    CHECK(ds.columns() == 4);
 }
 
 TEST_CASE("mapped_csv", "")

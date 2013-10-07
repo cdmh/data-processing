@@ -83,7 +83,12 @@ inline dataset delimited_data::create_dataset(bool destructive)
     dataset ds(column_info_.size());
     for (unsigned index=0; index<column_info_.size(); ++index)
     {
-        auto inserter = ds.create_column(column_info_[index].second);
+        auto inserter = ds.create_column(
+            column_info_[index].second,
+            std::string(
+                column_info_[index].first.begin(),
+                column_info_[index].first.end()));
+
         for (auto value : column_values_[index])
             inserter(value);
 

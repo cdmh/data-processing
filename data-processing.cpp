@@ -132,7 +132,7 @@ TEST_CASE("delimited_data/attach to string")
 
 TEST_CASE("mapped_csv", "")
 {
-    cdmh::data_processing::mapped_csv csv("data/training.csv");
+    cdmh::data_processing::mapped_csv csv("../data/training.csv");
 
 #ifdef NDEBUG
     size_t const rows_requested = 0;

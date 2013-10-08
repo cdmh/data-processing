@@ -77,8 +77,14 @@ read_field(char const *&begin, char const *end)
     bool expect_esc  = false;
     bool seen_period = false;
     bool seen_space  = false;
-    for (; it!=end  &&  (in_quotes  ||  (!in_quotes  &&  *it != ','))  &&  !(in_quotes  &&  *it == '\"'  &&  !expect_esc); ++it)
+    for (; it!=end  &&  (!in_quotes  ||  *it != '\"'  ||  expect_esc)  &&  (in_quotes  ||  *it != ','); ++it)
     {
+        assert(
+            ((in_quotes  ||  (!in_quotes  &&  *it != ','))  &&  !(in_quotes  &&  *it == '\"'  &&  !expect_esc))
+            ==
+            ((!in_quotes  ||  *it != '\"'  ||  expect_esc)  &&  (in_quotes  ||  *it != ','))
+        );
+
         if (*it >= '0'  &&  *it <= '9')
         {
             if (seen_space)

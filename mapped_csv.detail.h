@@ -14,11 +14,16 @@ unsigned const bit_count(T n)
 template<std::size_t N, typename... U>
 using select_type = typename std::tuple_element<N, std::tuple<U...> >::type;
 
+inline bool const isspace(char const ch)
+{
+    return ch == ' '  ||  ch == '\t'  ||  ch == '\r'  ||  ch == '\n';
+}
+
 template<typename It>
 inline
 void ltrim(It &it,It ite)
 {
-    while (it != ite  &&  std::isspace(*it, std::locale::classic()))
+    while (it != ite  &&  isspace(*it))
         ++it;
 }
 
@@ -74,7 +79,7 @@ read_field(char const *&begin, char const *end)
     bool seen_space  = false;
     for (; it!=end  &&  (in_quotes  ||  (!in_quotes  &&  *it != ','))  &&  !(in_quotes  &&  *it == '\"'  &&  !expect_esc); ++it)
     {
-        if (std::isdigit(*it,std::locale::classic()))
+        if (*it >= '0'  &&  *it <= '9')
         {
             if (seen_space)
                 excl_type_mask |= double_type | integer_type;
@@ -96,7 +101,7 @@ read_field(char const *&begin, char const *end)
         }
         else
         {
-            if (std::isspace(*it, std::locale::classic()))
+            if (isspace(*it))
                 seen_space = true;
             else
                 excl_type_mask |= double_type | integer_type;

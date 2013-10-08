@@ -48,6 +48,12 @@
     <ClInclude Include="maths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="delimited_data.detail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="delimited_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

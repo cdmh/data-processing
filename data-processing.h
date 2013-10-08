@@ -52,4 +52,5 @@ static cdmh::data_processing::type_mask_t const null_type    = 1 << 3;
 
 // project header files
 #include "dataset.h"
+#include "delimited_data.h"
 #include "mapped_csv.h"

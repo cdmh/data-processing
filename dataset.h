@@ -1,3 +1,7 @@
+// Copyright (c) 2013 Craig Henderson
+// Part of the Data Processing Library
+// https://github.com/cdmh/dataproc
+
 #include <algorithm>        // count_if
 #include <numeric>          // accumulate
 #include "maths.h"

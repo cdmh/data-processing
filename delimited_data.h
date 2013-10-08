@@ -1,3 +1,7 @@
+// Copyright (c) 2013 Craig Henderson
+// Part of the Data Processing Library
+// https://github.com/cdmh/dataproc
+
 #include "delimited_data.detail.h"
 
 namespace cdmh {

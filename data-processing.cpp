@@ -119,6 +119,11 @@ TEST_CASE("delimited_data/attach to string")
         CHECK(cdmh::data_processing::maths::standard_deviation<int>({ 2,4,4,4,5,5,7,9 }) == 2.0);
     }
 
+    SECTION("count") {
+        CHECK(ds.column(0).count_null() == 0);
+        CHECK(ds.column(0).count_unique() == 2);
+    }
+
     SECTION("min/max") {
         CHECK(ds.column(2).min<double>() == 22.345);
         CHECK(ds.column(1).min<std::uint32_t>() == 1229);

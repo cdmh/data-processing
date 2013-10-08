@@ -159,6 +159,25 @@ class dataset
                 });
         }
 
+        size_t const count_unique() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            if (ds_.column_type(column_) == double_type)
+                return count_unique<double>();
+            return count_unique<std::uint32_t>();
+        }
+
+        template<typename T>
+        size_t const count_unique() const
+        {
+            std::unordered_map<T, unsigned> counts;
+            for (auto const &value : ds_.at(column_))
+                if (!value.is_null())
+                    counts[value.get<T>()]++;
+            return counts.size();
+        }
+
         double const mean() const
         {
             assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);

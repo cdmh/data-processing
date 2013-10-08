@@ -83,8 +83,8 @@ TEST_CASE("delimited_data/attach to string")
 {
     char const *data =
         "col1,col2,col3,col4,col5\n"
-        "193,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
         "193,2982,83.326,9838,\"243 837 636 233 222 829\"\n"
+        "193,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
         "837,1229,83.326,9838,\"233 222 243 837 636 829\"\n"
         ;
 
@@ -96,8 +96,8 @@ TEST_CASE("delimited_data/attach to string")
 
     SECTION("data access") {
         CHECK((std::uint32_t)ds[0][0] == 193);
-        CHECK((std::uint32_t)ds[0]["col2"] == 1229);
-        CHECK((double)ds[0][2] == 22.345);
+        CHECK((std::uint32_t)ds[0]["col2"] == 2982);
+        CHECK((double)ds[0][2] == 83.326);
         CHECK(ds[0][4].get<std::string>().length() == 23);
     }
 
@@ -105,14 +105,25 @@ TEST_CASE("delimited_data/attach to string")
         CHECK(ds.column(0).mean() == 407.6666666666667);
         CHECK(fabs(ds.column(2).mean() - 62.999) < 0.00001);
 
+        CHECK_THROWS_AS(cdmh::data_processing::maths::median<double>({}), cdmh::data_processing::maths::math_error);
         CHECK(ds.column(0).median() == 193);
         CHECK(fabs(ds.column(2).median() - 83.326) < 0.00001);
 
+        CHECK_THROWS_AS(cdmh::data_processing::maths::median<double>({}), cdmh::data_processing::maths::math_error);
+        CHECK_THROWS_AS(cdmh::data_processing::maths::mode<double>({ 1,2,3,4,5,6,7 }), cdmh::data_processing::maths::math_error);
         CHECK(ds.column(1).mode() == 1229);
         CHECK(fabs(ds.column(2).mode() - 83.326) < 0.00001);
 
+        CHECK_THROWS_AS(cdmh::data_processing::maths::standard_deviation<double>({}), cdmh::data_processing::maths::math_error);
         CHECK(cdmh::data_processing::maths::standard_deviation<double>({ 2,4,4,4,5,5,7,9 }) == 2.0);
         CHECK(cdmh::data_processing::maths::standard_deviation<int>({ 2,4,4,4,5,5,7,9 }) == 2.0);
+    }
+
+    SECTION("min/max") {
+        CHECK(ds.column(2).min<double>() == 22.345);
+        CHECK(ds.column(1).min<std::uint32_t>() == 1229);
+        CHECK(ds.column(2).max<double>() == 83.326);
+        CHECK(ds.column(1).max<std::uint32_t>() == 2982);
     }
 
     SECTION("swap columns") {
@@ -156,27 +167,27 @@ TEST_CASE("mapped_csv", "")
     size_t const rows_expected  = rows_requested;
 #endif
 
-    REQUIRE(csv.read(rows_requested));
-    REQUIRE(csv.size() == rows_expected);
+    CHECK(csv.read(rows_requested));
+    CHECK(csv.size() == rows_expected);
 
     auto ds = csv.create_dataset();
     std::cout << ds.rows() << " records with " << ds.columns() << " columns\n";
     CHECK(ds.rows() == rows_expected);
-    REQUIRE(ds.columns() == 31);
+    CHECK(ds.columns() == 31);
 
     // access to string data through casting or calling get<>()
     std::string image = (std::string)ds[0][30];
-    REQUIRE(!image.empty());
+    CHECK(!image.empty());
     image = ds[1][30].get<std::string>();   // access row data
-    REQUIRE(!image.empty());
+    CHECK(!image.empty());
     image = ds[2][30].get<std::string>();
-    REQUIRE(!image.empty());
+    CHECK(!image.empty());
     image = ds.row(3)[30].get<std::string>();
-    REQUIRE(!image.empty());
+    CHECK(!image.empty());
 
     // access to C-style string is also supported
     char const *img = ds[3][30];
-    REQUIRE(image.compare(img) == 0);
+    CHECK(image.compare(img) == 0);
 
     std::ostringstream stream;
     auto a = ds[3];
@@ -187,15 +198,17 @@ TEST_CASE("mapped_csv", "")
     ds.column(30).erase();
     f << ds;
 
-    // the column mean ignores null values, so will always be greater
+    // the column mean ignores null values, so will can't be less
+    CHECK(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
     std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
     std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
-    REQUIRE(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
-
     std::cout << "Median            : " << ds.column(0).median() << "\n";
     std::cout << "Mode              : " << ds.column(0).mode() << "\n";
     std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
+    std::cout << "Min               : " << ds.column(0).min<double>() << "\n";
+    std::cout << "Max               : " << ds.column(0).max<double>() << "\n";
     std::cout << "\n";
+    CHECK(ds.column(0).min<double>() <= ds.column(0).max<double>());
 }
 
 }   // anonymous namespace

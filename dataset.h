@@ -129,10 +129,10 @@ class dataset
         column_data &operator=(column_data const &other) = delete;
         column_data &operator=(column_data &&other)      = delete;
 
-                             void           clear()             { ds_.clear_column(column_);                }
-        template<typename T> std::vector<T> detach()            { return ds_.detach_column<T>(column_);     }
-                             void           erase()             { return ds_.erase_column(column_);         }
-        template<typename T> std::vector<T> extract()           { return ds_.extract_column<T>(column_);    }
+                             void           clear()          { ds_.clear_column(column_);                }
+        template<typename T> std::vector<T> detach()         { return ds_.detach_column<T>(column_);     }
+                             void           erase()          { return ds_.erase_column(column_);         }
+        template<typename T> std::vector<T> extract()        { return ds_.extract_column<T>(column_);    }
                              void           swap(int column) { return ds_.swap_columns(column_, column); }
 
         // returns the number of non-null values in the column
@@ -193,6 +193,40 @@ class dataset
             if (ds_.column_type(column_) == double_type)
                 return maths::standard_deviation(ds_.extract_column<double>(column_, false));
             return maths::standard_deviation(ds_.extract_column<std::uint32_t>(column_, false));
+        }
+
+        template<typename T> T max() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            T max = std::numeric_limits<T>::min();
+            for (auto const &value : ds_.at(column_))
+            {
+                if (!value.is_null())
+                {
+                    T val = value.get<T>();
+                    if (val > max)
+                        max = val;
+                }
+            }
+            return max;
+        }
+
+        template<typename T> T min() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            T min = std::numeric_limits<T>::max();
+            for (auto const &value : ds_.at(column_))
+            {
+                if (!value.is_null())
+                {
+                    T val = value.get<T>();
+                    if (val < min)
+                        min = val;
+                }
+            }
+            return min;
         }
 
         template<typename T>

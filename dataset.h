@@ -1,6 +1,6 @@
 #include <algorithm>        // count_if
 #include <numeric>          // accumulate
-#include <unordered_map>
+#include "maths.h"
 
 #if _MSC_VER <= 1800
 #define noexcept
@@ -169,8 +169,8 @@ class dataset
             assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
 
             if (ds_.column_type(column_) == double_type)
-                return median(ds_.extract_column<double>(column_, false));
-            return (double)median(ds_.extract_column<std::uint32_t>(column_, false));
+                return maths::median(ds_.extract_column<double>(column_, false));
+            return (double)maths::median(ds_.extract_column<std::uint32_t>(column_, false));
         }
 
         double const mode() const
@@ -178,8 +178,17 @@ class dataset
             assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
 
             if (ds_.column_type(column_) == double_type)
-                return mode(ds_.extract_column<double>(column_, false));
-            return (double)mode(ds_.extract_column<std::uint32_t>(column_, false));
+                return maths::mode(ds_.extract_column<double>(column_, false));
+            return (double)maths::mode(ds_.extract_column<std::uint32_t>(column_, false));
+        }
+
+        double const standard_deviation() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            if (ds_.column_type(column_) == double_type)
+                return maths::standard_deviation(ds_.extract_column<double>(column_, false));
+            return maths::standard_deviation(ds_.extract_column<std::uint32_t>(column_, false));
         }
 
         template<typename T>
@@ -193,32 +202,6 @@ class dataset
                 [](T sum, cell_value const &cell) {
                     return sum + cell.get<T>();
                 });
-        }
-        
-      private:
-        template<typename T>
-        T median(std::vector<T> &&data) const
-        {
-            auto median = data.begin() + data.size() / 2;
-            std::nth_element(data.begin(), median, data.end());
-            return *median;
-        }
-
-        template<typename T>
-        T mode(std::vector<T> &&data) const
-        {
-            // count the occurrence of each value
-            std::unordered_map<T, unsigned> counts;
-            for (auto const &element : data)
-                counts[element]++;
-
-            // find the item with the largest count and return
-            return std::max_element(
-                counts.cbegin(),
-                counts.cend(),
-                [](std::pair<T, unsigned> const &a, std::pair<T, unsigned> const &b) {
-                    return a.second < b.second;
-                })->first;
         }
 
       private:

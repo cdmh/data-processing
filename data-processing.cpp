@@ -106,6 +106,9 @@ TEST_CASE("delimited_data/attach to string")
 
         CHECK(ds.column(1).mode() == 1229);
         CHECK(fabs(ds.column(2).mode() - 83.326) < 0.00001);
+
+        CHECK(cdmh::data_processing::maths::standard_deviation<double>({ 2,4,4,4,5,5,7,9 }) == 2.0);
+        CHECK(cdmh::data_processing::maths::standard_deviation<int>({ 2,4,4,4,5,5,7,9 }) == 2.0);
     }
 
     SECTION("swap columns") {
@@ -187,6 +190,7 @@ TEST_CASE("mapped_csv", "")
 
     std::cout << "Median            : " << ds.column(0).median() << "\n";
     std::cout << "Mode              : " << ds.column(0).mode() << "\n";
+    std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
     std::cout << "\n";
 }
 

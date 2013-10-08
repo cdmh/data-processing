@@ -84,6 +84,7 @@
     <ClInclude Include="dataset.h" />
     <ClInclude Include="mapped_csv.detail.h" />
     <ClInclude Include="mapped_csv.h" />
+    <ClInclude Include="maths.h" />
     <ClInclude Include="memmap.h" />
     <ClInclude Include="memmap\file_posix.h" />
     <ClInclude Include="memmap\file_win32.h" />

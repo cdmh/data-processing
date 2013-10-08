@@ -42,7 +42,10 @@
     <ClInclude Include="dataset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dataproc.h">
+    <ClInclude Include="data-processing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,7 +53,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dataproc.cpp">
+    <ClCompile Include="data-processing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

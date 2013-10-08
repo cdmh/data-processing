@@ -79,8 +79,9 @@ TEST_CASE("delimited_data/attach to string")
 {
     char const *data =
         "col1,col2,col3,col4,col5\n"
-        "192,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
-        "837,2982,83.326,9838,\"243 837 636 233 222 829\"\n"
+        "193,1229,22.345,2437,\"230 389 198 827 273 536\"\n"
+        "193,2982,83.326,9838,\"243 837 636 233 222 829\"\n"
+        "837,1229,83.326,9838,\"233 222 243 837 636 829\"\n"
         ;
 
     cdmh::data_processing::delimited_data dd;
@@ -90,21 +91,27 @@ TEST_CASE("delimited_data/attach to string")
     CHECK_THROWS_AS(ds.column("column333"), cdmh::data_processing::invalid_column_name);
 
     SECTION("data access") {
-        CHECK((std::uint32_t)ds[0][0] == 192);
+        CHECK((std::uint32_t)ds[0][0] == 193);
         CHECK((std::uint32_t)ds[0]["col2"] == 1229);
         CHECK((double)ds[0][2] == 22.345);
         CHECK(ds[0][4].get<std::string>().length() == 23);
     }
 
     SECTION("averages") {
-        CHECK(ds.column(0).mean() == 514.5);
-        CHECK(fabs(ds.column(2).mean() - 52.8355) < 0.00001);
+        CHECK(ds.column(0).mean() == 407.6666666666667);
+        CHECK(fabs(ds.column(2).mean() - 62.999) < 0.00001);
+
+        CHECK(ds.column(0).median() == 193);
+        CHECK(fabs(ds.column(2).median() - 83.326) < 0.00001);
+
+        CHECK(ds.column(1).mode() == 1229);
+        CHECK(fabs(ds.column(2).mode() - 83.326) < 0.00001);
     }
 
     SECTION("swap columns") {
         ds.column(2).swap(0);
-        CHECK(ds.column(2).mean() == 514.5);
-        CHECK(fabs(ds.column(0).mean() - 52.8355) < 0.00001);
+        CHECK(ds.column(2).mean() == 407.6666666666667);
+        CHECK(fabs(ds.column(0).mean() - 62.999) < 0.00001);
     }
 
     SECTION("averages") {
@@ -178,6 +185,8 @@ TEST_CASE("mapped_csv", "")
     std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
     REQUIRE(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
 
+    std::cout << "Median            : " << ds.column(0).median() << "\n";
+    std::cout << "Mode              : " << ds.column(0).mode() << "\n";
     std::cout << "\n";
 }
 

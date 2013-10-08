@@ -1,5 +1,6 @@
-#include <algorithm>    // count_if
-#include <numeric>      // accumulate
+#include <algorithm>        // count_if
+#include <numeric>          // accumulate
+#include <unordered_map>
 
 #if _MSC_VER <= 1800
 #define noexcept
@@ -37,7 +38,7 @@ class dataset
     void                                clear_column(int column);
     template<typename T> std::vector<T> detach_column(int column);
     void                                erase_column(int column);
-    template<typename T> std::vector<T> extract_column(int column);
+    template<typename T> std::vector<T> extract_column(int column, bool include_nulls=true);
     size_t                  const       lookup_column(char const *name)              const;
     row_data                            row(size_t row)                              const;
     size_t                  const       rows()                                       const;
@@ -163,6 +164,24 @@ class dataset
             return (double)sum<std::uint32_t>() / count();
         }
 
+        double const median() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            if (ds_.column_type(column_) == double_type)
+                return median(ds_.extract_column<double>(column_, false));
+            return (double)median(ds_.extract_column<std::uint32_t>(column_, false));
+        }
+
+        double const mode() const
+        {
+            assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+
+            if (ds_.column_type(column_) == double_type)
+                return mode(ds_.extract_column<double>(column_, false));
+            return (double)mode(ds_.extract_column<std::uint32_t>(column_, false));
+        }
+
         template<typename T>
         T const sum() const
         {
@@ -174,6 +193,32 @@ class dataset
                 [](T sum, cell_value const &cell) {
                     return sum + cell.get<T>();
                 });
+        }
+        
+      private:
+        template<typename T>
+        T median(std::vector<T> &&data) const
+        {
+            auto median = data.begin() + data.size() / 2;
+            std::nth_element(data.begin(), median, data.end());
+            return *median;
+        }
+
+        template<typename T>
+        T mode(std::vector<T> &&data) const
+        {
+            // count the occurrence of each value
+            std::unordered_map<T, unsigned> counts;
+            for (auto const &element : data)
+                counts[element]++;
+
+            // find the item with the largest count and return
+            return std::max_element(
+                counts.cbegin(),
+                counts.cend(),
+                [](std::pair<T, unsigned> const &a, std::pair<T, unsigned> const &b) {
+                    return a.second < b.second;
+                })->first;
         }
 
       private:
@@ -318,12 +363,13 @@ inline void dataset::clear_column(int column)
 }
 
 template<typename T>
-inline std::vector<T> dataset::extract_column(int column)
+inline std::vector<T> dataset::extract_column(int column, bool include_nulls)
 {
     std::vector<T> result;
     result.reserve(columns_[column].values.size());
     for (auto &value : columns_[column].values)
-        result.push_back(value.get<T>());
+        if (include_nulls  ||  !value.is_null())
+            result.push_back(value.get<T>());
     return result;
 }
 

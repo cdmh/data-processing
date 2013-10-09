@@ -135,6 +135,11 @@ class dataset
         template<typename T> std::vector<T> extract()        { return ds_.extract_column<T>(column_);    }
                              void           swap(int column) { return ds_.swap_columns(column_, column); }
 
+        size_t const size() const
+        {
+            return ds_.at(column_).size();
+        }
+
         // returns the number of non-null values in the column
         size_t const count() const
         {

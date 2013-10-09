@@ -2,8 +2,6 @@
 // Part of the Data Processing Library
 // https://github.com/cdmh/dataproc
 
-#include "delimited_data.detail.h"
-
 namespace cdmh {
 
 namespace data_processing {

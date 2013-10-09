@@ -82,7 +82,7 @@
   <ItemGroup>
     <ClInclude Include="data-processing.h" />
     <ClInclude Include="dataset.h" />
-    <ClInclude Include="delimited_data.detail.h" />
+    <ClInclude Include="data_processing.detail.h" />
     <ClInclude Include="delimited_data.h" />
     <ClInclude Include="mapped_csv.detail.h" />
     <ClInclude Include="mapped_csv.h" />

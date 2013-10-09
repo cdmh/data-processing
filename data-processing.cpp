@@ -180,40 +180,63 @@ TEST_CASE("mapped_csv", "")
     CHECK(ds.rows() == rows_expected);
     CHECK(ds.columns() == 31);
 
-    // access to string data through casting or calling get<>()
-    std::string image = (std::string)ds[0][30];
-    CHECK(!image.empty());
-    image = ds[1][30].get<std::string>();   // access row data
-    CHECK(!image.empty());
-    image = ds[2][30].get<std::string>();
-    CHECK(!image.empty());
-    image = ds.row(3)[30].get<std::string>();
-    CHECK(!image.empty());
+    SECTION("string data access") {
+        // access to string data through casting or calling get<>()
+        std::string image = (std::string)ds[0][30];
+        CHECK(!image.empty());
+        image = ds[1][30].get<std::string>();   // access row data
+        CHECK(!image.empty());
+        image = ds[2][30].get<std::string>();
+        CHECK(!image.empty());
+        image = ds.row(3)[30].get<std::string>();
+        CHECK(!image.empty());
 
-    // access to C-style string is also supported
-    char const *img = ds[3][30];
-    CHECK(image.compare(img) == 0);
+        // access to C-style string is also supported
+        char const *img = ds[3][30];
+        CHECK(image.compare(img) == 0);
+    }
 
-    std::ostringstream stream;
-    auto a = ds[3];
-    stream << a[0] << " " << a[1] << " ";   // test value serialisation
-    stream << ds[210];                      // test row serialisation
+    SECTION("output stream tests") {
+        std::ostringstream stream;
+        auto a = ds[3];
+        stream << a[0] << " " << a[1] << " ";   // test value serialisation
+        stream << ds[210];                      // test row serialisation
 
-    std::ofstream f("out.csv");
-    ds.column(30).erase();
-    f << ds;
+        std::ofstream f("out.csv");
+        ds.column(30).erase();
+        f << ds;
+    }
 
-    // the column mean ignores null values, so will can't be less
-    CHECK(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
-    std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
-    std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
-    std::cout << "Median            : " << ds.column(0).median() << "\n";
-    std::cout << "Mode              : " << ds.column(0).mode() << "\n";
-    std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
-    std::cout << "Min               : " << ds.column(0).min<double>() << "\n";
-    std::cout << "Max               : " << ds.column(0).max<double>() << "\n";
+    SECTION("count") {
+        CHECK((ds.column(0).count() + ds.column(0).count_null()) == ds.column(0).size());
+        CHECK((ds.column(0).count() + ds.column(0).count_null()) == ds.rows());
+    }
+
+    SECTION("averages") {
+        // the column mean ignores null values, so will can't be less
+        CHECK(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
+        std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
+        std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
+        std::cout << "Median            : " << ds.column(0).median() << "\n";
+        std::cout << "Mode              : " << ds.column(0).mode() << "\n";
+        std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
+        std::cout << "Min               : " << ds.column(0).min<double>() << "\n";
+        std::cout << "Max               : " << ds.column(0).max<double>() << "\n";
+        CHECK(ds.column(0).min<double>() <= ds.column(0).max<double>());
+    }
+
+    SECTION("split text string") {
+        for (size_t loop=0; loop<ds.rows(); ++loop)
+        {
+            auto integers = cdmh::data_processing::split_string<std::uint32_t>(ds[loop][30].get<std::string>(), ' ');
+            //for (auto const value : integers)
+            //    std::cout << value << ",";
+            if ((loop % 1000) == 0)
+                std::cout << loop << " : " << integers.size() << "\n";
+        }
+    }
+
     std::cout << "\n";
-    CHECK(ds.column(0).min<double>() <= ds.column(0).max<double>());
 }
 
 }   // anonymous namespace

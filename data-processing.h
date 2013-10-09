@@ -15,10 +15,27 @@
 // project "system" header files
 #include "memmap.h"
 
+#include "data_processing.detail.h"
+
 namespace cdmh {
 namespace data_processing {
 
-typedef std::uint8_t type_mask_t;
+template<typename T, typename U>
+inline
+std::vector<T> split_string(U const &string, char const delim)
+{
+    std::vector<T> result;
+
+    auto it  = string.cbegin();
+    auto ite = string.cend();
+    while (detail::ltrim(it,ite) != ite)
+    {
+        auto sp = std::find_if(it, ite, [delim](char ch) { return ch == delim; });
+        result.push_back(atol(std::string(it,sp).c_str()));
+        it = sp;
+    }
+    return result;
+}
 
 // a string type of a string of characters
 // represented by a pair of iterators

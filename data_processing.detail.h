@@ -4,6 +4,9 @@
 
 namespace cdmh {
 namespace data_processing {
+
+typedef std::uint8_t type_mask_t;
+
 namespace detail {
 
 inline bool const isspace(char const ch)
@@ -13,10 +16,11 @@ inline bool const isspace(char const ch)
 
 template<typename It>
 inline
-void ltrim(It &it,It ite)
+It ltrim(It &it,It ite)
 {
     while (it != ite  &&  isspace(*it))
         ++it;
+    return it;
 }
 
 template<typename It>

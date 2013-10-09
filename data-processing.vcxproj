@@ -81,7 +81,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="data-processing.h" />
+    <ClInclude Include="dataset.cell_value.h" />
+    <ClInclude Include="dataset.column_data.h" />
     <ClInclude Include="dataset.h" />
+    <ClInclude Include="dataset.impl.h" />
+    <ClInclude Include="dataset.row_data.h" />
     <ClInclude Include="data_processing.detail.h" />
     <ClInclude Include="delimited_data.h" />
     <ClInclude Include="mapped_csv.detail.h" />

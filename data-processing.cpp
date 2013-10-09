@@ -239,6 +239,12 @@ TEST_CASE("mapped_csv", "")
     std::cout << "\n";
 }
 
+TEST_CASE("import dataset", "")
+{
+    cdmh::data_processing::dataset ds;
+    ds.import_csv("../data/training.csv");
+}
+
 }   // anonymous namespace
 
 int main(int argc, char * const argv[])

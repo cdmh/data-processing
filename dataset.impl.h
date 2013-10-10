@@ -197,18 +197,6 @@ inline dataset::row_data dataset::operator[](size_t n) const
 }
 
 
-// these overloads are required by the MSVC2013RC 64bit compiler, but I don't understand why
-inline dataset::column_data dataset::column(int n)
-{
-    return column((size_t)n);
-}
-
-inline dataset::row_data::cell dataset::row_data::operator[](int column) const
-{
-    return (*this)[(size_t)column];
-}
-
-
 /*
     serialization free functions
 */

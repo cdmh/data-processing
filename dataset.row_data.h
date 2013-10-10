@@ -20,6 +20,11 @@ inline dataset::row_data::row_data(dataset const &ds, size_t row)
 {
 }
 
+inline dataset::row_data::cell dataset::row_data::operator[](int column) const
+{
+    return (*this)[(size_t)column];
+}
+
 inline dataset::row_data::cell dataset::row_data::operator[](size_t column) const
 {
     return cell(ds_, row_, column);

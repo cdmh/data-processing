@@ -187,6 +187,11 @@ inline T const dataset::column_data::sum() const
         });
 }
 
+inline dataset::column_data dataset::column(int n)
+{
+    return column((size_t)n);
+}
+
 inline dataset::column_data dataset::column(size_t column)
 {
     return column_data(*this, column);

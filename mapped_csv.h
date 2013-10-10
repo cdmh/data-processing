@@ -11,19 +11,29 @@ namespace data_processing {
 class mapped_csv : public delimited_data
 {
   public:
-    explicit mapped_csv(char const * const filename)
-      : file_(filename, readonly),
-        mmf_(file_, readonly)
-    {
-    }
+    explicit mapped_csv(char const * const filename);
+    explicit mapped_csv(std::string const &filename);
     ~mapped_csv();
-    void close();
 
+    void       close();
+    bool const read(std::uint64_t max_records=0);
+
+  private:
     file<char>                 file_;
     memory_mapped_file<char>   mmf_;
 
-    bool          const read(std::uint64_t max_records=0);
 };
+
+inline mapped_csv::mapped_csv(char const * const filename)
+  : file_(filename, readonly),
+    mmf_(file_, readonly)
+{
+}
+
+inline mapped_csv::mapped_csv(std::string const &filename)
+  : mapped_csv(filename.c_str())
+{
+}
 
 inline mapped_csv::~mapped_csv()
 {

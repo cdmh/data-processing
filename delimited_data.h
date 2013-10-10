@@ -9,17 +9,16 @@ namespace data_processing {
 class delimited_data
 {
   public:
-    delimited_data(): record_count_(0) { }
+    delimited_data();
 
     template<typename It>
     bool const attach(It begin, It end, std::uint64_t max_records=0);
-
     bool const attach(char const *data, std::uint64_t max_records=0);
 
     dataset             create_dataset(bool destructive = true);
     std::uint64_t const size() const;
 
-  protected:
+  private:
     void create_column(unsigned index, string_view &name, type_mask_t /*type*/);
     void store_field(unsigned index, string_view &value, type_mask_t type);
 
@@ -36,6 +35,11 @@ class delimited_data
     typedef std::vector<std::pair<string_view, type_mask_t>> string_list_t;
     std::vector<string_list_t> column_values_;
 };
+
+inline
+delimited_data::delimited_data() : record_count_(0)
+{
+}
 
 template<typename It>
 inline

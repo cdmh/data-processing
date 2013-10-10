@@ -13,15 +13,11 @@ class dataset
 {
   public:
     explicit dataset(size_t num_columns = 0);
-    dataset(dataset &&other) noexcept;
+    dataset(dataset &&other)            noexcept;
+    dataset &operator=(dataset &&other) noexcept;
+
     dataset(dataset const &other)                = delete;  // defaults are not safe because
     dataset &operator=(dataset const &other)     = delete;  // in the union
-
-    dataset &operator=(dataset &&other) noexcept
-    {
-        std::swap(columns_, other.columns_);
-        return *this;
-    }
 
     class cell_value;
     class column_data;
@@ -38,6 +34,7 @@ class dataset
     void                                erase_column(int column);
     template<typename T> std::vector<T> extract_column(int column, bool include_nulls=true);
     bool                    const       import_csv(char const *filename);
+    bool                    const       import_csv(std::string const &filename);
     size_t                  const       lookup_column(char const *name)              const;
     row_data                            row(size_t row)                              const;
     size_t                  const       rows()                                       const;

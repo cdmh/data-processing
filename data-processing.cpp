@@ -162,7 +162,8 @@ TEST_CASE("delimited_data/attach to string")
 
 TEST_CASE("mapped_csv", "")
 {
-    cdmh::data_processing::mapped_csv csv("../data/training.csv");
+    std::string filename("../data/training.csv");
+    cdmh::data_processing::mapped_csv csv(filename);
 
 #ifdef NDEBUG
     size_t const rows_requested = 0;
@@ -241,8 +242,9 @@ TEST_CASE("mapped_csv", "")
 
 TEST_CASE("import dataset", "")
 {
+    std::string filename("../data/training.csv");
     cdmh::data_processing::dataset ds;
-    ds.import_csv("../data/training.csv");
+    ds.import_csv(filename);
 }
 
 }   // anonymous namespace

@@ -36,6 +36,12 @@ inline dataset::dataset(dataset &&other) noexcept
     std::swap(columns_, other.columns_);
 }
 
+inline dataset &dataset::operator=(dataset &&other) noexcept
+{
+    std::swap(columns_, other.columns_);
+    return *this;
+}
+
 template<typename T>
 inline
 T dataset::at(size_t row, int column) const
@@ -113,6 +119,15 @@ inline size_t const dataset::lookup_column(char const *name) const
         ++index;
     }
     throw invalid_column_name();
+}
+
+inline bool const dataset::import_csv(std::string const &filename)
+{
+    mapped_csv csv(filename);
+    if (!csv.read())
+        return false;
+    *this = csv.create_dataset();
+    return true;
 }
 
 inline bool const dataset::import_csv(char const *filename)

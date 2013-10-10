@@ -44,12 +44,12 @@ inline dataset &dataset::operator=(dataset &&other) noexcept
 
 template<typename T>
 inline
-T dataset::at(size_t row, int column) const
+T dataset::at(size_t row, size_t column) const
 {
     return columns_[column].values[row].get<T>();
 }
 
-inline std::vector<dataset::cell_value> const &dataset::at(int column) const
+inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
 {
     return columns_[column].values;
 }
@@ -74,19 +74,19 @@ inline size_t const dataset::columns() const
     return columns_.size();
 }
 
-inline type_mask_t const dataset::column_type(int column) const
+inline type_mask_t const dataset::column_type(size_t column) const
 {
     return columns_[column].type;
 }
 
-inline void dataset::clear_column(int column)
+inline void dataset::clear_column(size_t column)
 {
     for (auto &value : columns_[column].values)
         value.clear();
 }
 
 template<typename T>
-inline std::vector<T> dataset::extract_column(int column, bool include_nulls)
+inline std::vector<T> dataset::extract_column(size_t column, bool include_nulls)
 {
     std::vector<T> result;
     result.reserve(columns_[column].values.size());
@@ -97,14 +97,14 @@ inline std::vector<T> dataset::extract_column(int column, bool include_nulls)
 }
 
 template<typename T>
-inline std::vector<T> dataset::detach_column(int column)
+inline std::vector<T> dataset::detach_column(size_t column)
 {
     std::vector<T> result = extract_column<T>(column);
     erase_column(column);
     return result;
 }
 
-inline void dataset::erase_column(int column)
+inline void dataset::erase_column(size_t column)
 {
     columns_.erase(columns_.begin() + column);
 }
@@ -145,12 +145,12 @@ inline size_t const dataset::rows() const
     return columns_.size()==0? 0 : columns_[0].values.size();
 }
 
-inline void dataset::swap_columns(int column1, int column2)
+inline void dataset::swap_columns(size_t column1, size_t column2)
 {
     std::swap(columns_[column1], columns_[column2]);
 }
 
-inline type_mask_t const dataset::type_at(size_t row, int column) const
+inline type_mask_t const dataset::type_at(size_t row, size_t column) const
 {
     return columns_[column].values[row].type();
 }
@@ -183,7 +183,7 @@ inline void dataset::add_column_integer_data(size_t index, std::pair<string_view
 {
     columns_[index].values.emplace_back(
         value.second,
-        size_t(atol(value.first.begin())));
+        std::uint32_t(atol(value.first.begin())));
 }
 
 inline dataset::row_data dataset::row(size_t row) const
@@ -196,6 +196,19 @@ inline dataset::row_data dataset::operator[](size_t n) const
     return row(n);
 }
 
+
+// these overloads are required by the MSVC2013RC 64bit compiler, but I don't understand why
+inline dataset::column_data dataset::column(int n)
+{
+    return column((size_t)n);
+}
+
+inline dataset::row_data::cell dataset::row_data::operator[](int column) const
+{
+    return (*this)[(size_t)column];
+}
+
+
 /*
     serialization free functions
 */
@@ -206,10 +219,10 @@ std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_dat
 {
     switch (value.type())
     {
-        case string_type:   o << value.get<std::string>();  break;
-        case double_type:   o << value.get<double>();       break;
-        case integer_type:  o << value.get<size_t>();       break;
-        case null_type:                                     break;
+        case string_type:   o << value.get<std::string>();      break;
+        case double_type:   o << value.get<double>();           break;
+        case integer_type:  o << value.get<std::uint32_t>();    break;
+        case null_type:                                         break;
         default:            assert(!"Unknown value type");
     }
     return o;

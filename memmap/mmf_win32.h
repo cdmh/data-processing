@@ -49,13 +49,15 @@ bool memory_mapped_file<T, F>::map_readwrite(file_handle_t handle)
 }
 
 
+inline std::uint32_t lo(std::uint64_t const &l)           { return l & 0xffffffff;         }
+inline std::uint32_t hi(std::uint64_t const &l)           { return (l >> 32) & 0xffffffff; }
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map(file_handle_t    &handle,
-                                protection_t        &prot,
-                                flags_or_security_t &fos,
-                                length_t            &len,
-                                offset_t            &off)
+bool memory_mapped_file<T, F>::map(file_handle_t       &handle,
+                                   protection_t        &prot,
+                                   flags_or_security_t &fos,
+                                   length_t            &len,
+                                   offset_t            &off)
 {
     if (ptr_ != 0)
         return false;
@@ -63,8 +65,8 @@ bool memory_mapped_file<T, F>::map(file_handle_t    &handle,
     detail_.file_mapping_handle_ = ::CreateFileMapping(handle,
                                                        fos.security,
                                                        prot,
-#ifdef _USE_INT64
-                                                       len.map.hi, len.map.lo,
+#ifdef MMAP_USE_INT64
+                                                       lo(len.map), hi(len.map),
 #else
                                                        0, len.map,
 #endif
@@ -78,7 +80,7 @@ bool memory_mapped_file<T, F>::map(file_handle_t    &handle,
     void *ptr;
     ptr = ::MapViewOfFileEx(detail_.file_mapping_handle_,   // handle to file-mapping object
                             fos.access,                     // access mode
-#ifdef _USE_INT64
+#ifdef MMAP_USE_INT64
                             off.hi,                         // high-order DWORD of offset_t
                             off.lo,                         // low-order DWORD of offset_t
 #else

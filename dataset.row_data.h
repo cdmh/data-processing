@@ -10,15 +10,17 @@ namespace data_processing {
 /*
     dataset::row_data member functions
 */
-inline dataset::row_data::cell::cell(dataset const &ds,size_t row,int column): ds_(ds), row_(row),column_(column)
+inline dataset::row_data::cell::cell(dataset const &ds, size_t row, size_t column)
+  : ds_(ds), row_(row),column_(column)
 {
 }
 
-inline dataset::row_data::row_data(dataset const &ds, size_t row) : ds_(ds), row_(row)
+inline dataset::row_data::row_data(dataset const &ds, size_t row)
+  : ds_(ds), row_(row)
 {
 }
 
-inline dataset::row_data::cell dataset::row_data::operator[](int column) const
+inline dataset::row_data::cell dataset::row_data::operator[](size_t column) const
 {
     return cell(ds_, row_, column);
 }

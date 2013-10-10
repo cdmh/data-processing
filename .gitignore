@@ -16,3 +16,4 @@ Debug/*
 Release/*
 data/*
 *.suo
+x64/*

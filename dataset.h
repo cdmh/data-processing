@@ -23,23 +23,24 @@ class dataset
     class column_data;
     class row_data;
 
-    template<typename U> U              at(size_t row, int column)                const;
-    std::vector<cell_value> const      &at(int column)                            const;
-    type_mask_t             const       column_type(int column)                   const;
-    column_data                         column(int column);
+    template<typename U> U              at(size_t row, size_t column)                const;
+    std::vector<cell_value> const      &at(size_t column)                            const;
+    type_mask_t             const       column_type(size_t column)                   const;
+    column_data                         column(int n);              // !!! why is this needed?
+    column_data                         column(size_t column);
     column_data                         column(char const *name);
     size_t                  const       columns()                                    const;
-    void                                clear_column(int column);
-    template<typename T> std::vector<T> detach_column(int column);
-    void                                erase_column(int column);
-    template<typename T> std::vector<T> extract_column(int column, bool include_nulls=true);
+    void                                clear_column(size_t column);
+    template<typename T> std::vector<T> detach_column(size_t column);
+    void                                erase_column(size_t column);
+    template<typename T> std::vector<T> extract_column(size_t column, bool include_nulls=true);
     bool                    const       import_csv(char const *filename);
     bool                    const       import_csv(std::string const &filename);
     size_t                  const       lookup_column(char const *name)              const;
     row_data                            row(size_t row)                              const;
     size_t                  const       rows()                                       const;
-    void                                swap_columns(int column1, int column2);
-    type_mask_t             const       type_at(size_t row, int column)           const;
+    void                                swap_columns(size_t column1, size_t column2);
+    type_mask_t             const       type_at(size_t row, size_t column)           const;
     row_data                            operator[](size_t n)                         const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
@@ -75,7 +76,7 @@ class dataset::cell_value
     cell_value &operator=(cell_value const &other);
 
     cell_value(type_mask_t type, double dbl);
-    cell_value(type_mask_t type, size_t integer);
+    cell_value(type_mask_t type, std::uint32_t integer);
     cell_value(type_mask_t type, std::string string);
 
     type_mask_t   const  type()       const;
@@ -91,9 +92,9 @@ class dataset::cell_value
   private:
     type_mask_t type_;
     union {
-        double       double_;
-        size_t       integer_;
-        std::string *string_;
+        double        double_;
+        std::uint32_t integer_;
+        std::string  *string_;
     };
 };
 
@@ -101,7 +102,7 @@ class dataset::cell_value
 class dataset::column_data
 {
   public:
-    column_data(dataset &ds, int column);
+    column_data(dataset &ds, size_t column);
     column_data(dataset &ds, char const *name);
     column_data(column_data const &other);
 
@@ -125,7 +126,7 @@ class dataset::column_data
                             size_t const   size()               const;
     template<typename T>    T const        sum()                const;
                             double const   standard_deviation() const;
-                            void           swap(int column);
+                            void           swap(size_t column);
 
   private:
     dataset       &ds_;
@@ -141,7 +142,8 @@ class dataset::row_data
     row_data &operator=(row_data const &) = delete;
 
     class cell;
-    cell    operator[](int column)       const;
+    cell    operator[](int column)       const;     // !!! why is this needed?
+    cell    operator[](size_t column)    const;
     cell    operator[](char const *name) const;
     size_t  size()                       const;
 
@@ -166,7 +168,7 @@ class dataset::row_data::cell
                             type_mask_t const type() const;
 
   protected:
-    cell(dataset const &ds,size_t row,int column);
+    cell(dataset const &ds,size_t row,size_t column);
 
     friend row_data;
 

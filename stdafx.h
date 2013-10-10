@@ -5,3 +5,7 @@
 #pragma once
 
 #include <Windows.h>
+
+#ifdef _WIN64
+#define MMAP_USE_INT64
+#endif

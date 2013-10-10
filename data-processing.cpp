@@ -94,6 +94,9 @@ TEST_CASE("delimited_data/attach to string")
     CHECK(ds.columns() == 5);
     CHECK_THROWS_AS(ds.column("column333"), cdmh::data_processing::invalid_column_name);
 
+    auto p1 = ds[0];
+    auto p2 = p1[0];
+
     SECTION("data access") {
         CHECK((std::uint32_t)ds[0][0] == 193);
         CHECK((std::uint32_t)ds[0]["col2"] == 2982);

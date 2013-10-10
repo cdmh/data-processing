@@ -16,7 +16,7 @@ inline dataset::cell_value::cell_value(type_mask_t type, double dbl)
     assert(type == double_type  ||  (type == null_type  &&  double_  == 0.0)); 
 }
 
-inline dataset::cell_value::cell_value(type_mask_t type, size_t integer)
+inline dataset::cell_value::cell_value(type_mask_t type, std::uint32_t integer)
   : type_(type), integer_(integer)
 {
     assert(type == integer_type ||  (type == null_type  &&  integer_ == 0));
@@ -83,6 +83,12 @@ inline bool const dataset::cell_value::is_string() const
 inline bool const dataset::cell_value::is_null() const
 {
     return type_ == null_type;
+}
+
+template<typename T>
+T dataset::cell_value::get() const
+{
+    static_assert(false, "Unsupported type: try char const *, std::string, double or std::uint32_t");
 }
 
 template<>

@@ -10,7 +10,7 @@ namespace data_processing {
 /*
     dataset::column_data member functions
 */
-inline dataset::column_data::column_data(dataset &ds, int column)
+inline dataset::column_data::column_data(dataset &ds, size_t column)
   : ds_(ds), column_(column)
 {
 }
@@ -49,7 +49,10 @@ std::vector<T> dataset::column_data::extract()
     return ds_.extract_column<T>(column_);
 }
 
-inline void dataset::column_data::swap(int column) { return ds_.swap_columns(column_, column); }
+inline void dataset::column_data::swap(size_t column)
+{
+    return ds_.swap_columns(column_, column);
+}
 
 inline size_t const dataset::column_data::size() const
 {
@@ -184,7 +187,7 @@ inline T const dataset::column_data::sum() const
         });
 }
 
-inline dataset::column_data dataset::column(int column)
+inline dataset::column_data dataset::column(size_t column)
 {
     return column_data(*this, column);
 }

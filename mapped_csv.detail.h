@@ -36,54 +36,62 @@ read_field(char const *&begin, char const *end)
     type_mask_t excl_type_mask = 0;
 
     // special case for unary operators
-    if (*it == '-'  ||  *it == '+')
+    if (!in_quotes  &&  (*it == '-'  ||  *it == '+'))
     {
         incl_type_mask |= double_type | integer_type;
         ++it;
     }
 
-    bool expect_esc  = false;
     bool seen_period = false;
     bool seen_space  = false;
-    for (; it!=end  &&  (!in_quotes  ||  *it != '\"'  ||  expect_esc)  &&  (in_quotes  ||  *it != ','); ++it)
-    {
-        assert(
-            ((in_quotes  ||  (!in_quotes  &&  *it != ','))  &&  !(in_quotes  &&  *it == '\"'  &&  !expect_esc))
-            ==
-            ((!in_quotes  ||  *it != '\"'  ||  expect_esc)  &&  (in_quotes  ||  *it != ','))
+    for (;
+        it!=end
+        &&  (
+            (in_quotes  &&  *it != '\"')
+        ||  (in_quotes  &&  *it == '\"'  &&  it+1!=end  &&  *(it+1) == '\"')   // inside quotes, "" escaped quotes
+        ||  (!in_quotes  &&  *it != ','  &&  *it != '\r'  &&  *it != '\n')     // outside quotes, terminate on comma or CR or LF
         );
-
-        if (*it >= '0'  &&  *it <= '9')
+        ++it)
+    {
+        if (in_quotes)
         {
-            if (seen_space)
-                excl_type_mask |= double_type | integer_type;
-            else
-                incl_type_mask |= double_type | integer_type;
-        }
-        else if (*it == '.')
-        {
-            if (seen_space)
-                excl_type_mask |= double_type | integer_type;
-            else if (seen_period)
-                excl_type_mask |= double_type;
-            else
+            if (*it == '\"')
             {
-                incl_type_mask |= double_type;
-                excl_type_mask |= integer_type;
-                seen_period = true;
+                assert(it+1 != end);
+                assert(*(it+1) == '\"');
+                ++it;
             }
         }
         else
         {
-            if (isspace(*it))
-                seen_space = true;
-            else
-                excl_type_mask |= double_type | integer_type;
-
-            if (!expect_esc  &&  *it == '\\')
-                expect_esc = true;
-            else
-                expect_esc = false;
+            if (*it >= '0'  &&  *it <= '9')
+            {
+                if (seen_space)
+                    excl_type_mask |= double_type | integer_type;
+                else
+                    incl_type_mask |= double_type | integer_type;
+            }
+            else if (*it == '.')
+            {
+                if (seen_space)
+                    excl_type_mask |= double_type | integer_type;
+                else if (seen_period)
+                    excl_type_mask |= double_type;
+                else
+                {
+                    incl_type_mask |= double_type;
+                    excl_type_mask |= integer_type;
+                    seen_period = true;
+                }
+            }
+            else if (*it != '\r'  &&  *it != '\n')
+            {
+                assert(!in_quotes);
+                if (isspace(*it))
+                    seen_space = true;
+                else
+                    excl_type_mask |= double_type | integer_type;
+            }
         }
     }
 
@@ -91,7 +99,7 @@ read_field(char const *&begin, char const *end)
         rtrim(begin, it);
 
     if (begin == it)
-        return std::make_pair(string_view(begin++, it), null_type);
+        return std::make_pair(string_view(begin, it), null_type);
 
     // precedences
     incl_type_mask &= ~excl_type_mask;
@@ -107,12 +115,11 @@ read_field(char const *&begin, char const *end)
     begin = it;
     if (in_quotes)
     {
+        if (*begin != '\"')
+            DebugBreak();
         assert(*begin == '\"');
-        ltrim(++begin, end);
-    }
-
-    if (begin != end  &&  *begin == ',')
         ++begin;
+    }
     return result;
 }
 

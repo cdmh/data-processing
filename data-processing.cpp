@@ -22,7 +22,8 @@ TEST_CASE("read_field/string fields", "Ensure reading of correct field types")
 {
     CHECK(read_field("Hello").second == string_type);
     CHECK(read_field("\"Hello World\"").second == string_type);
-    CHECK(read_field("\"Hello \\\"World\\\"!\"").second == string_type);
+    CHECK(read_field("\"Hello \"\"World\"\"!\"").second == string_type);
+    CHECK(read_field("\"Hello \"\"World\"\"!\"").first.length() == 16);
 }
 
 TEST_CASE("read_field/integer fields", "")
@@ -63,7 +64,7 @@ TEST_CASE("read_field/comma separated fields with space padding", "")
     auto it = record;
     auto ite = record+strlen(record);
     auto field1 = cdmh::data_processing::detail::read_field(it, ite);
-    auto field2 = cdmh::data_processing::detail::read_field(it, ite);
+    auto field2 = cdmh::data_processing::detail::read_field(++it, ite);
     CHECK(field1.second == string_type);
     CHECK(field1.first.length() == 5);
     CHECK(field2.second == string_type);
@@ -176,7 +177,7 @@ TEST_CASE("mapped_csv", "")
     size_t const rows_expected  = rows_requested;
 #endif
 
-    CHECK(csv.read(rows_requested));
+    REQUIRE(csv.read(rows_requested));
     CHECK(csv.size() == rows_expected);
 
     auto ds = csv.create_dataset();
@@ -218,11 +219,11 @@ TEST_CASE("mapped_csv", "")
 
     SECTION("averages") {
         // the column mean ignores null values, so will can't be less
-        CHECK(ds.column(7).mean() >= ds.column(7).sum<double>() / ds.rows());
+        CHECK(ds.column(7).mean() >= (ds.column(7).sum<double>() / ds.rows()));
         std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
         std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
         std::cout << "Median            : " << ds.column(0).median() << "\n";
-        std::cout << "Mode              : " << ds.column(0).mode() << "\n";
+//        std::cout << "Mode              : " << ds.column(0).mode() << "\n";
         std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
         std::cout << "Min               : " << ds.column(0).min<double>() << "\n";
         std::cout << "Max               : " << ds.column(0).max<double>() << "\n";

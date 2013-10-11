@@ -43,6 +43,21 @@ delimited_data::delimited_data() : record_count_(0)
 
 template<typename It>
 inline
+It find_eol(It it, It ite)
+{
+    while (it != ite)
+    {
+        detail::read_field(it, ite);
+        if (it == ite  ||  *it == '\r'  ||  *it == '\n')
+            return it;
+        assert(*it == ',');
+        ++it;
+    }
+    return it;
+}
+
+template<typename It>
+inline
 bool const delimited_data::attach(It begin, It end, std::uint64_t max_records)
 {
     typedef 
@@ -57,11 +72,13 @@ bool const delimited_data::attach(It begin, It end, std::uint64_t max_records)
 
     while (begin != end  &&  (max_records == 0  ||  size() < max_records))
     {
-        auto eol = std::find_if(begin, end, [](char ch) { return ch == '\r'  ||  ch == '\n'; });
-        process_record(begin, eol, store);
-        assert(begin == eol);
-        detail::ltrim(begin, end);
-        store = store_fields;
+        auto eol = find_eol(detail::ltrim(begin, end), end);
+        if (begin != end)
+        {
+            process_record(begin, eol, store);
+            assert(begin == eol);
+            store = store_fields;
+        }
     }
 
     return true;
@@ -96,7 +113,9 @@ inline dataset delimited_data::create_dataset(bool destructive)
                 column_info_[index].first.end()));
 
         for (auto value : column_values_[index])
+        {
             inserter(value);
+        }
 
         if (destructive)
             string_list_t().swap(column_values_[index]);
@@ -121,6 +140,11 @@ bool const delimited_data::process_record(It &begin, It end, Fn fn)
     {
         auto field = detail::read_field(begin, end);
         fn(index, field.first, field.second);
+        if (begin!=end)
+        {
+            assert(*begin == ',');
+            ++begin;
+        }
     }
 
     return true;
@@ -148,7 +172,7 @@ inline void delimited_data::store_field(unsigned index, string_view &value, type
             column_info_[index].second = string_type;
     }
 
-    column_values_[index].push_back(std::make_pair(value, type));
+    column_values_[index].emplace_back(std::make_pair(value, type));
     assert(column_info_.size() == column_values_.size());
 }
 

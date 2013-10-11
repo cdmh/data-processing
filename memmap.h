@@ -18,6 +18,14 @@
 
 #ifdef _MSC_VER
 #define MMAP_WINDOWS
+
+#ifndef _WINDOWS_
+#error Please include windows.h first
+#endif
+
+#ifdef _WIN64
+#define MMAP_USE_INT64
+#endif
 #endif
 
 #if !defined(MMAP_POSIX)  &&  !defined(MMAP_WINDOWS)
@@ -42,10 +50,10 @@ namespace cdmh {
         LPSECURITY_ATTRIBUTES security;
     }   flags_or_security_t;
 #ifdef MMAP_USE_INT64
-    typedef UINT64 filesize_t;
+    typedef std::uint64_t filesize_t;
     typedef struct
     {
-        DWORD hi, lo;
+        std::uint32_t hi, lo;
     } offset_t;
 #else
     typedef DWORD offset_t;
@@ -102,7 +110,9 @@ inline filesize_t get_file_size(file_handle_t handle)
             DWORD hi;
         } i64;
     } u;
+    memset(&u, 0, sizeof(u));
     u.i64.lo = ::GetFileSize(handle, &u.i64.hi);
+    assert(sizeof(u.i64) == sizeof(u.len)  ||  u.i64.hi == 0);
     return u.len;
 #endif
 }

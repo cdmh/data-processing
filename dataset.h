@@ -26,7 +26,7 @@ class dataset
     template<typename U> U              at(size_t row, size_t column)                const;
     std::vector<cell_value> const      &at(size_t column)                            const;
     type_mask_t             const       column_type(size_t column)                   const;
-    column_data                         column(int n);              // !!! why is this needed?
+    column_data                         column(int n);
     column_data                         column(size_t column);
     column_data                         column(char const *name);
     size_t                  const       columns()                                    const;
@@ -142,7 +142,7 @@ class dataset::row_data
     row_data &operator=(row_data const &) = delete;
 
     class cell;
-    cell    operator[](int column)       const;     // !!! why is this needed?
+    cell    operator[](int column)       const;
     cell    operator[](size_t column)    const;
     cell    operator[](char const *name) const;
     size_t  size()                       const;

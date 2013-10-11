@@ -169,13 +169,13 @@ inline void dataset::assert_valid() const
 
 inline void dataset::add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    assert(value.second == string_type);
+    assert(value.second == string_type  ||  (value.second == null_type  &&  value.first.length() == 0));
     columns_[index].values.emplace_back(value.second, std::string(value.first.begin(), value.first.end()));
 }
 
 inline void dataset::add_column_double_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    assert(value.second == double_type);
+    assert(value.second == double_type  ||  (value.second == null_type  &&  value.first.length() == 0));
     columns_[index].values.emplace_back(
         value.second,
         strtod(value.first.begin(), nullptr));
@@ -183,7 +183,7 @@ inline void dataset::add_column_double_data(size_t index, std::pair<string_view,
 
 inline void dataset::add_column_integer_data(size_t index, std::pair<string_view, type_mask_t> value)
 {
-    assert(value.second == integer_type);
+    assert(value.second == integer_type  ||  (value.second == null_type  &&  value.first.length() == 0));
     columns_[index].values.emplace_back(
         value.second,
         std::uint32_t(atol(value.first.begin())));

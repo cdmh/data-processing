@@ -58,6 +58,27 @@ class string_view
     char const *end_;
 };
 
+inline
+bool const operator==(string_view const &first, char const *second)
+{
+    auto const len1 = first.length();
+    auto const len2 = strlen(second);
+    if (len1 != len2)
+        return false;
+
+    return (strcmp(first.begin(), second) == 0);
+}
+
+template<typename E, typename T>
+inline
+std::basic_ostream<E, T> &operator<<(std::basic_ostream<E, T> &o, string_view const &str)
+{
+    std::copy(str.begin(), str.end(), std::ostream_iterator<char>(o));
+    return o;
+}
+
+//bool const operator==(string_view const &first, string_view const &second);
+
 }   // namespace data_processing
 }   // namespace cdmh
 

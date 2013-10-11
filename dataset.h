@@ -44,7 +44,7 @@ class dataset
     row_data                            operator[](size_t n)                         const;
 
     std::function<void (std::pair<string_view, type_mask_t>)>
-    create_column(type_mask_t type, std::string const &name);
+    create_column(type_mask_t type, string_view const &name);
 
   private:
     void add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value);
@@ -56,8 +56,10 @@ class dataset
     struct column_info
     {
         type_mask_t             type;
-        std::string             name;
+        string_view             name;
         std::vector<cell_value> values;
+
+        column_info() = delete;
     };
 
     std::vector<column_info> columns_;

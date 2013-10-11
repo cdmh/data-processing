@@ -108,14 +108,10 @@ inline dataset delimited_data::create_dataset(bool destructive)
     {
         auto inserter = ds.create_column(
             column_info_[index].second,
-            std::string(
-                column_info_[index].first.begin(),
-                column_info_[index].first.end()));
+            column_info_[index].first);
 
         for (auto value : column_values_[index])
-        {
             inserter(value);
-        }
 
         if (destructive)
             string_list_t().swap(column_values_[index]);

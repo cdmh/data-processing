@@ -56,7 +56,7 @@ inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
 
 inline
 std::function<void (std::pair<string_view, type_mask_t>)>
-dataset::create_column(type_mask_t type, std::string const &name)
+dataset::create_column(type_mask_t type, string_view const &name)
 {
     columns_.push_back(column_info{type, name, std::vector<cell_value>()});
 

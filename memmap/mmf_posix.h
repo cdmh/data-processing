@@ -13,14 +13,14 @@
 namespace cdmh {
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::release()
+bool mapped_memory<T, F>::release()
 {
     return ::munmap(reinterpret_cast<char *>(ptr_), detail_.len);
 }
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map_readonly(file_handle_t handle)
+bool mapped_memory<T, F>::map_readonly(file_handle_t handle)
 {
     detail_.len = get_file_size(handle);
 
@@ -33,7 +33,7 @@ bool memory_mapped_file<T, F>::map_readonly(file_handle_t handle)
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map_readwrite(file_handle_t handle)
+bool mapped_memory<T, F>::map_readwrite(file_handle_t handle)
 {
     detail_.len = get_file_size(handle);
 
@@ -47,7 +47,7 @@ bool memory_mapped_file<T, F>::map_readwrite(file_handle_t handle)
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map(file_handle_t    &handle,
+bool mapped_memory<T, F>::map(file_handle_t    &handle,
                                 protection_t        &prot,
                                 flags_or_security_t &fos,
                                 length_t            &len,

@@ -10,7 +10,7 @@ namespace cdmh {
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::release()
+bool mapped_memory<T, F>::release()
 {
     if (detail_.file_mapping_handle_ != INVALID_HANDLE_VALUE
     &&  detail_.file_mapping_handle_ != NULL)
@@ -28,7 +28,7 @@ bool memory_mapped_file<T, F>::release()
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map_readonly(file_handle_t handle)
+bool mapped_memory<T, F>::map_readonly(file_handle_t handle)
 {
     flags_or_security_t fos  = { FILE_MAP_READ, NULL };
     protection_t        prot = PAGE_READONLY;
@@ -39,7 +39,7 @@ bool memory_mapped_file<T, F>::map_readonly(file_handle_t handle)
 
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map_readwrite(file_handle_t handle)
+bool mapped_memory<T, F>::map_readwrite(file_handle_t handle)
 {
     flags_or_security_t fos  = { FILE_MAP_WRITE, NULL };
     protection_t        prot = PAGE_READWRITE;
@@ -53,7 +53,7 @@ inline std::uint32_t lo(std::uint64_t const &l)           { return l & 0xfffffff
 inline std::uint32_t hi(std::uint64_t const &l)           { return (l >> 32) & 0xffffffff; }
 
 template <typename T, typename F>
-bool memory_mapped_file<T, F>::map(file_handle_t       &handle,
+bool mapped_memory<T, F>::map(file_handle_t       &handle,
                                    protection_t        &prot,
                                    flags_or_security_t &fos,
                                    length_t            &len,

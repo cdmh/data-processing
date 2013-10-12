@@ -2,137 +2,65 @@
 // Part of the Data Processing Library
 // https://github.com/cdmh/dataproc
 
-#if _MSC_VER <= 1800
-#define noexcept
-#endif
-
 namespace cdmh {
+
 namespace data_processing {
 
 class dataset
 {
   public:
-    explicit dataset(size_t num_columns = 0);
-    dataset(dataset &&other)            noexcept;
-    dataset &operator=(dataset &&other) noexcept;
-
-    dataset(dataset const &other)                = delete;  // defaults are not safe because
-    dataset &operator=(dataset const &other)     = delete;  // in the union
-
     class cell_value;
     class column_data;
     class row_data;
 
-    template<typename U> U              at(size_t row, size_t column)                const;
-    std::vector<cell_value> const      &at(size_t column)                            const;
-    type_mask_t             const       column_type(size_t column)                   const;
-    column_data                         column(int n);
-    column_data                         column(size_t column);
-    column_data                         column(char const *name);
-    size_t                  const       columns()                                    const;
-    void                                clear_column(size_t column);
-    template<typename T> std::vector<T> detach_column(size_t column);
-    void                                erase_column(size_t column);
-    template<typename T> std::vector<T> extract_column(size_t column, bool include_nulls=true);
-    bool                    const       import_csv(char const *filename);
-    bool                    const       import_csv(std::string const &filename);
-    size_t                  const       lookup_column(char const *name)              const;
-    row_data                            row(size_t row)                              const;
-    size_t                  const       rows()                                       const;
-    void                                swap_columns(size_t column1, size_t column2);
-    type_mask_t             const       type_at(size_t row, size_t column)           const;
-    row_data                            operator[](size_t n)                         const;
-
-    std::function<void (std::pair<string_view, type_mask_t>)>
-    create_column(type_mask_t type, std::string const &name);
-
-  private:
-    void add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value);
-    void add_column_double_data(size_t index, std::pair<string_view, type_mask_t> value);
-    void add_column_integer_data(size_t index, std::pair<string_view, type_mask_t> value);
-    void assert_valid() const;
-
-  private:
-    struct column_info
+    class invalid_column_name : public std::runtime_error
     {
-        type_mask_t             type;
-        std::string             name;
-        std::vector<cell_value> values;
+      public:
+        invalid_column_name() : std::runtime_error("Invalid column name")
+        { }
     };
 
-    std::vector<column_info> columns_;
+    template<typename It>
+    bool const attach(It begin, It end, std::uint64_t max_records=0);
+    bool const attach(char const *data, std::uint64_t max_records=0);
+
+
+    row_data                            operator[](size_t n)             const;
+    template<typename U> U              at(size_t row, size_t column)    const;
+    cell_value              const      &cell(size_t row, size_t column)  const;
+    std::vector<cell_value> const      &cells(size_t column)             const;
+    column_data                         column(int n)                    const;
+    column_data                         column(size_t column)            const;
+    column_data                         column(char const *name)         const;
+    size_t                  const       columns()                        const;
+    type_mask_t             const       column_type(size_t column)       const;
+    void                                erase_column(size_t column);
+    template<typename T> std::vector<T> extract_column(size_t column, bool include_nulls=false) const;
+    size_t                  const       lookup_column(char const *name)  const;
+    row_data                            row(size_t row)                  const;
+    size_t                  const       rows()                           const;
+
+  private:
+    void create_column(unsigned index, string_view const &name, type_mask_t /*type*/);
+    void store_field(unsigned index, string_view const &value, type_mask_t type);
+
+    template<typename It, typename Fn>
+    bool const process_record(It &begin, It end, Fn fn);
+
+  private:
+    typedef std::pair<string_view, type_mask_t> column_info_t;
+
+    std::vector<column_info_t> column_info_;
+    std::vector<type_mask_t>   incl_type_mask_;
+
+    typedef std::vector<cell_value> string_list_t;
+    std::vector<string_list_t> column_values_;
 
     template<typename E, typename T>
     friend
-    std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset const &ds);
+    std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset const &dd);
+
 };
-
-
-class dataset::cell_value
-{
-  public:
-    cell_value(cell_value &&other);
-    cell_value(cell_value const &other);
-    cell_value &operator=(cell_value const &other);
-
-    cell_value(type_mask_t type, double dbl);
-    cell_value(type_mask_t type, std::uint32_t integer);
-    cell_value(type_mask_t type, std::string string);
-
-    type_mask_t   const  type()       const;
-    bool          const  is_double()  const;
-    bool          const  is_integer() const;
-    bool          const  is_string()  const;
-    bool          const  is_null()    const;
-    template<typename T> T get()      const;
-
-    ~cell_value();
-    void clear();
-
-  private:
-    type_mask_t type_;
-    union {
-        double        double_;
-        std::uint32_t integer_;
-        std::string  *string_;
-    };
-};
-
-
-class dataset::column_data
-{
-  public:
-    column_data(dataset &ds, size_t column);
-    column_data(dataset &ds, char const *name);
-    column_data(column_data const &other);
-
-    column_data(column_data &&other)                 = delete;
-    column_data &operator=(column_data const &other) = delete;
-    column_data &operator=(column_data &&other)      = delete;
-
-                            void           clear();
-                            size_t const   count()              const;
-                            size_t const   count_null()         const;
-                            size_t const   count_unique()       const;
-    template<typename T>    size_t const   count_unique()       const;
-    template<typename T>    std::vector<T> detach();
-                            void           erase();
-    template<typename T>    std::vector<T> extract();
-    template<typename T>    T              max()                const;
-    template<typename T>    T              min()                const;
-                            double const   mean()               const;
-                            double const   median()             const;
-                            double const   mode()               const;
-                            size_t const   size()               const;
-    template<typename T>    T const        sum()                const;
-                            double const   standard_deviation() const;
-                            void           swap(size_t column);
-
-  private:
-    dataset       &ds_;
-    size_t  const  column_;
-};
-
 
 class dataset::row_data
 {
@@ -141,41 +69,90 @@ class dataset::row_data
     row_data(row_data const &)            = delete;
     row_data &operator=(row_data const &) = delete;
 
-    class cell;
-    cell    operator[](int column)       const;
-    cell    operator[](size_t column)    const;
-    cell    operator[](char const *name) const;
-    size_t  size()                       const;
+    class cell_reference;
+    cell_reference operator[](int column)       const;
+    cell_reference operator[](size_t column)    const;
+    cell_reference operator[](char const *name) const;
+    size_t         size()                       const;
 
 
   private:
-    dataset const &ds_;
-    size_t  const  row_;
+    dataset const &dd_;
+    size_t         const  row_;
 };
 
-
-class dataset::row_data::cell
+class dataset::row_data::cell_reference
 {
   public:
-    cell(cell const &) = default;
-    cell &operator=(cell const &) = delete;
+    cell_reference(cell_reference const &) = default;
+    cell_reference &operator=(cell_reference const &) = delete;
 
-    cell(cell &&other)            noexcept;
-    cell &operator=(cell &&other) noexcept;
+    cell_reference(cell_reference &&other)            noexcept;
+    cell_reference &operator=(cell_reference &&other) = delete;
 
-    template<typename U>    operator U()             const;
-    template<typename U>    U                 get()  const;
-                            type_mask_t const type() const;
+    template<typename U>    operator U()                const;
+    template<typename U>    U                 get()     const;
+                            bool const        is_null() const;
+                            type_mask_t const type()    const;
 
   protected:
-    cell(dataset const &ds,size_t row,size_t column);
+    cell_reference(dataset const &ds,size_t row,size_t column);
 
     friend row_data;
 
     private:
-    dataset const &ds_;
-    size_t         row_;
-    size_t         column_;
+    dataset const &dd_;
+    size_t         const  row_;
+    size_t         const  column_;
+};
+
+class dataset::cell_value
+{
+  public:
+    explicit cell_value(string_view string);
+
+    type_mask_t   const  type()       const;
+    bool          const  is_double()  const { return type() == double_type;  }
+    bool          const  is_integer() const { return type() == integer_type; }
+    bool          const  is_string()  const { return type() == string_type;  }
+    bool          const  is_null()    const { return string_.length() == 0;  }
+    template<typename T> T get()      const;
+
+  private:
+    string_view string_;
+};
+
+class dataset::column_data
+{
+  public:
+    column_data(dataset const &ds, size_t column);
+    column_data(dataset const &ds, char const *name);
+    column_data(column_data const &other);
+
+    column_data(column_data &&other)                 = delete;
+    column_data &operator=(column_data const &other) = delete;
+    column_data &operator=(column_data &&other)      = delete;
+
+                            size_t const   count()              const;
+                            size_t const   count_null()         const;
+                            size_t const   count_unique()       const;
+    template<typename T>    size_t const   count_unique()       const;
+    template<typename T>    std::vector<T> extract()            const;
+                            bool   const   is_double()          const { return dd_.column_type(column_) == double_type;  }
+                            bool   const   is_integer()         const { return dd_.column_type(column_) == integer_type; }
+                            bool   const   is_string()          const { return dd_.column_type(column_) == string_type;  }
+    template<typename T>    T              max()                const;
+    template<typename T>    T              min()                const;
+                            double const   mean()               const;
+                            double const   median()             const;
+                            double const   mode()               const;
+                            size_t const   size()               const;
+    template<typename T>    T const        sum()                const;
+                            double const   standard_deviation() const;
+
+  private:
+    dataset const &dd_;
+    size_t  const  column_;
 };
 
 }   // namespace data_processing

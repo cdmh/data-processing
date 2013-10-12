@@ -33,7 +33,7 @@ bool file<T>::close() throw()
 
 
 template<typename T>
-bool file<T>::create(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED
+bool file<T>::create(const std::basic_string<T> &filepath)
 {
     if (handle_ != MEMMAP_INVALID_HANDLE)
         throw file_already_attached();
@@ -49,7 +49,7 @@ bool file<T>::create(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACH
 
 
 template<typename T>
-bool file<T>::open_readonly(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED
+bool file<T>::open_readonly(const std::basic_string<T> &filepath)
 {
     if (handle_ != MEMMAP_INVALID_HANDLE)
         throw file_already_attached();
@@ -66,7 +66,7 @@ bool file<T>::open_readonly(const std::basic_string<T> &filepath) THROWS_ALREADY
 
 
 template<typename T>
-bool file<T>::open_readwrite(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED
+bool file<T>::open_readwrite(const std::basic_string<T> &filepath)
 {
     if (handle_ != MEMMAP_INVALID_HANDLE)
         throw file_already_attached();

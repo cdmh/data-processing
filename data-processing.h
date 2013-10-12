@@ -58,6 +58,27 @@ class string_view
     char const *end_;
 };
 
+inline
+bool const operator==(string_view const &first, char const *second)
+{
+    auto const len1 = first.length();
+    auto const len2 = strlen(second);
+    if (len1 != len2)
+        return false;
+
+    return (strncmp(first.begin(), second, len1) == 0);
+}
+
+template<typename E, typename T>
+inline
+std::basic_ostream<E, T> &operator<<(std::basic_ostream<E, T> &o, string_view const &str)
+{
+    std::copy(str.begin(), str.end(), std::ostream_iterator<char>(o));
+    return o;
+}
+
+//bool const operator==(string_view const &first, string_view const &second);
+
 }   // namespace data_processing
 }   // namespace cdmh
 
@@ -73,7 +94,9 @@ static cdmh::data_processing::type_mask_t const null_type    = 1 << 3;
 
 // project header files
 #include "dataset.h"
-#include "delimited_data.h"
 #include "mapped_csv.h"
+#include "maths.h"
 
 #include "dataset.impl.h"
+#include "dataset.column_data.h"
+#include "dataset.row_data.h"

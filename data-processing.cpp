@@ -80,7 +80,7 @@ TEST_CASE("read_field/spaces around quoted string with leading & trailing spaces
     CHECK(std::distance(field.first.begin(), field.first.end()) == 15);
 }
 
-TEST_CASE("delimited_data/attach to string")
+TEST_CASE("dataset/attach to string")
 {
     char const *data =
         "col1,col2,col3,col4,col5\n"
@@ -89,11 +89,16 @@ TEST_CASE("delimited_data/attach to string")
         "837,1229,83.326,9838,\"233 222 243 837 636 829\"\n"
         ;
 
-    cdmh::data_processing::delimited_data dd;
-    dd.attach(data);
-    auto ds = dd.create_dataset();
+    cdmh::data_processing::dataset ds;
+    ds.attach(data);
     CHECK(ds.columns() == 5);
-    CHECK_THROWS_AS(ds.column("column333"), cdmh::data_processing::invalid_column_name);
+    CHECK_THROWS_AS(ds.column("column333"), cdmh::data_processing::dataset::invalid_column_name);
+
+    CHECK(ds.column("col1").is_integer());
+    CHECK(ds.column("col2").is_integer());
+    CHECK(ds.column("col3").is_double());
+    CHECK(ds.column("col4").is_integer());
+    CHECK(ds.column("col5").is_string());
 
     auto p1 = ds[0];
     auto p2 = p1[0];
@@ -135,40 +140,18 @@ TEST_CASE("delimited_data/attach to string")
         CHECK(ds.column(1).max<std::uint32_t>() == 2982);
     }
 
-    SECTION("swap columns") {
-        ds.column(2).swap(0);
-        CHECK(ds.column(2).mean() == 407.6666666666667);
-        CHECK(fabs(ds.column(0).mean() - 62.999) < 0.00001);
-    }
-
     SECTION("averages") {
         CHECK(ds.column(0).count_null() == 0);
     }
 
-    SECTION("clear columns") {
-        ds.column(2).clear();
-        CHECK(ds.column(2).count_null() == ds.rows());
-        std::cout << ds;
-
-        ds.column(2).erase();
-        CHECK(ds.columns() == 4);
-        std::cout << ds;
-    }
-
     SECTION("extracting data") {
         auto extracted_data = ds.column(0).extract<std::uint32_t>();
-        auto column_data = ds.column(0).detach<std::uint32_t>();
-        std::cout << ds;
-        CHECK(ds.columns() == 4);
-        CHECK(extracted_data == column_data);
+        CHECK(extracted_data.size() == ds.rows());
     }
 }
 
 TEST_CASE("mapped_csv", "")
 {
-    std::string filename("../data/training.csv");
-    cdmh::data_processing::mapped_csv csv(filename);
-
 #ifdef NDEBUG
     size_t const rows_requested = 0;
     size_t const rows_expected  = 7049;
@@ -177,63 +160,66 @@ TEST_CASE("mapped_csv", "")
     size_t const rows_expected  = rows_requested;
 #endif
 
-    REQUIRE(csv.read(rows_requested));
-    CHECK(csv.size() == rows_expected);
+    std::string filename("/test-data/facial-keypoints-detection/training.csv");
+    cdmh::memory_mapped_file<char> mmf(filename);
+    REQUIRE(mmf.is_open());
 
-    auto ds = csv.create_dataset();
-    std::cout << ds.rows() << " records with " << ds.columns() << " columns\n";
-    CHECK(ds.rows() == rows_expected);
-    CHECK(ds.columns() == 31);
+    char const *it = mmf.get();
+    char const *ite = it + mmf.size();
+    cdmh::data_processing::dataset dd;
+    dd.attach(it, ite, rows_requested);
+
+    CHECK(dd.rows() == rows_expected);
+
+    std::cout << dd.rows() << " records with " << dd.columns() << " columns\n";
+    CHECK(dd.rows() == rows_expected);
+    CHECK(dd.columns() == 31);
 
     SECTION("string data access") {
         // access to string data through casting or calling get<>()
-        std::string image = (std::string)ds[0][30];
+        std::string image = (std::string)dd[0][30];
         CHECK(!image.empty());
-        image = ds[1][30].get<std::string>();   // access row data
+        image = dd[1][30].get<std::string>();   // access row data
         CHECK(!image.empty());
-        image = ds[2][30].get<std::string>();
+        image = dd[2][30].get<std::string>();
         CHECK(!image.empty());
-        image = ds.row(3)[30].get<std::string>();
+        image = dd.row(3)[30].get<std::string>();
         CHECK(!image.empty());
-
-        // access to C-style string is also supported
-        char const *img = ds[3][30];
-        CHECK(image.compare(img) == 0);
     }
 
     SECTION("output stream tests") {
         std::ostringstream stream;
-        auto a = ds[3];
+        auto a = dd[3];
         stream << a[0] << " " << a[1] << " ";   // test value serialisation
-        stream << ds[210];                      // test row serialisation
+        stream << dd[210];                      // test row serialisation
 
         std::ofstream f("out.csv");
-        ds.column(30).erase();
-        f << ds;
+        dd.erase_column(30);
+        f << dd;
     }
 
     SECTION("count") {
-        CHECK((ds.column(0).count() + ds.column(0).count_null()) == ds.column(0).size());
-        CHECK((ds.column(0).count() + ds.column(0).count_null()) == ds.rows());
+        CHECK((dd.column(0).count() + dd.column(0).count_null()) == dd.column(0).size());
+        CHECK((dd.column(0).count() + dd.column(0).count_null()) == dd.rows());
     }
 
     SECTION("averages") {
         // the column mean ignores null values, so will can't be less
-        CHECK(ds.column(7).mean() >= (ds.column(7).sum<double>() / ds.rows()));
-        std::cout << "Mean without NULLs: " << ds.column("right_eye_outer_corner_x").mean() << "\n";
-        std::cout << "Mean with NULLs   : " << ds.column("right_eye_outer_corner_x").sum<double>() / ds.rows() << "\n";
-        std::cout << "Median            : " << ds.column(0).median() << "\n";
-//        std::cout << "Mode              : " << ds.column(0).mode() << "\n";
-        std::cout << "Standard Deviation: " << ds.column(0).standard_deviation() << "\n";
-        std::cout << "Min               : " << ds.column(0).min<double>() << "\n";
-        std::cout << "Max               : " << ds.column(0).max<double>() << "\n";
-        CHECK(ds.column(0).min<double>() <= ds.column(0).max<double>());
+        CHECK(dd.column(7).mean() >= (dd.column(7).sum<double>() / dd.rows()));
+        std::cout << "Mean without NULLs: " << dd.column("right_eye_outer_corner_x").mean() << "\n";
+        std::cout << "Mean with NULLs   : " << dd.column("right_eye_outer_corner_x").sum<double>() / dd.rows() << "\n";
+        std::cout << "Median            : " << dd.column(0).median() << "\n";
+//        std::cout << "Mode              : " << dd.column(0).mode() << "\n";
+        std::cout << "Standard Deviation: " << dd.column(0).standard_deviation() << "\n";
+        std::cout << "Min               : " << dd.column(0).min<double>() << "\n";
+        std::cout << "Max               : " << dd.column(0).max<double>() << "\n";
+        CHECK(dd.column(0).min<double>() <= dd.column(0).max<double>());
     }
 
     SECTION("split text string") {
-        for (size_t loop=0; loop<ds.rows(); ++loop)
+        for (size_t loop=0; loop<dd.rows(); ++loop)
         {
-            auto integers = cdmh::data_processing::split_string<std::uint32_t>(ds[loop][30].get<std::string>(), ' ');
+            auto integers = cdmh::data_processing::split_string<std::uint32_t>(dd[loop][30].get<std::string>(), ' ');
             //for (auto const value : integers)
             //    std::cout << value << ",";
             if ((loop % 1000) == 0)
@@ -242,13 +228,6 @@ TEST_CASE("mapped_csv", "")
     }
 
     std::cout << "\n";
-}
-
-TEST_CASE("import dataset", "")
-{
-    std::string filename("../data/training.csv");
-    cdmh::data_processing::dataset ds;
-    ds.import_csv(filename);
 }
 
 }   // anonymous namespace

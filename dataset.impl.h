@@ -2,191 +2,41 @@
 // Part of the Data Processing Library
 // https://github.com/cdmh/dataproc
 
-#include <algorithm>        // count_if
-#include <numeric>          // accumulate
-#include "maths.h"
-
-#include "dataset.cell_value.h"
-#include "dataset.column_data.h"
-#include "dataset.row_data.h"
-
 namespace cdmh {
+
 namespace data_processing {
 
-class invalid_column_name : public std::runtime_error
+inline std::vector<dataset::cell_value> const &dataset::cells(size_t column) const
 {
-  public:
-    invalid_column_name() : std::runtime_error("Invalid column name")
-    { }
-};
-
-
-/*
-  dataset member functions
-*/
-inline dataset::dataset(size_t num_columns)
-{
-    if (num_columns > 0)
-        columns_.reserve(num_columns);
-}
-
-inline dataset::dataset(dataset &&other) noexcept
-{
-    assert_valid();
-    std::swap(columns_, other.columns_);
-}
-
-inline dataset &dataset::operator=(dataset &&other) noexcept
-{
-    std::swap(columns_, other.columns_);
-    return *this;
+    return column_values_[column];
 }
 
 template<typename T>
 inline
 T dataset::at(size_t row, size_t column) const
 {
-    return columns_[column].values[row].get<T>();
-}
-
-inline std::vector<dataset::cell_value> const &dataset::at(size_t column) const
-{
-    return columns_[column].values;
+    return cell(row, column).get<T>();
 }
 
 inline
-std::function<void (std::pair<string_view, type_mask_t>)>
-dataset::create_column(type_mask_t type, std::string const &name)
+dataset::cell_value const &dataset::cell(size_t row, size_t column) const
 {
-    columns_.push_back(column_info{type, name, std::vector<cell_value>()});
-
-    if (type == string_type)
-        return std::bind(&dataset::add_column_string_data, this, columns_.size()-1, std::placeholders::_1);
-    else if (type == double_type)
-        return std::bind(&dataset::add_column_double_data, this, columns_.size()-1, std::placeholders::_1);
-
-    assert(type == integer_type);
-    return std::bind(&dataset::add_column_integer_data, this, columns_.size()-1, std::placeholders::_1);
+    return column_values_[column][row];
 }
 
 inline size_t const dataset::columns() const
 {
-    return columns_.size();
-}
-
-inline type_mask_t const dataset::column_type(size_t column) const
-{
-    return columns_[column].type;
-}
-
-inline void dataset::clear_column(size_t column)
-{
-    for (auto &value : columns_[column].values)
-        value.clear();
-}
-
-template<typename T>
-inline std::vector<T> dataset::extract_column(size_t column, bool include_nulls)
-{
-    std::vector<T> result;
-    result.reserve(columns_[column].values.size());
-    for (auto &value : columns_[column].values)
-        if (include_nulls  ||  !value.is_null())
-            result.push_back(value.get<T>());
-    return result;
-}
-
-template<typename T>
-inline std::vector<T> dataset::detach_column(size_t column)
-{
-    std::vector<T> result = extract_column<T>(column);
-    erase_column(column);
-    return result;
+    return column_values_.size();
 }
 
 inline void dataset::erase_column(size_t column)
 {
-    columns_.erase(columns_.begin() + column);
+    column_values_.erase(column_values_.begin() + column);
 }
 
-inline size_t const dataset::lookup_column(char const *name) const
+inline bool const dataset::row_data::cell_reference::is_null() const
 {
-    size_t index = 0;
-    for (auto const &column : columns_)
-    {
-        if (column.name == name)
-            return index;
-        ++index;
-    }
-    throw invalid_column_name();
-}
-
-inline bool const dataset::import_csv(std::string const &filename)
-{
-    mapped_csv csv(filename);
-    if (!csv.read())
-        return false;
-    *this = csv.create_dataset();
-    return true;
-}
-
-inline bool const dataset::import_csv(char const *filename)
-{
-    mapped_csv csv(filename);
-    if (!csv.read())
-        return false;
-    *this = csv.create_dataset();
-    return true;
-}
-
-inline size_t const dataset::rows() const
-{
-    assert_valid();
-    return columns_.size()==0? 0 : columns_[0].values.size();
-}
-
-inline void dataset::swap_columns(size_t column1, size_t column2)
-{
-    std::swap(columns_[column1], columns_[column2]);
-}
-
-inline type_mask_t const dataset::type_at(size_t row, size_t column) const
-{
-    return columns_[column].values[row].type();
-}
-
-inline void dataset::assert_valid() const
-{
-#ifndef NDEBUG
-    if (columns_.size() > 0)
-    {
-        auto const size = columns_[0].values.size();
-        for (size_t loop=1; loop<columns_.size(); ++loop)
-            assert(columns_[loop].values.size() == size);
-    }
-#endif
-}
-
-inline void dataset::add_column_string_data(size_t index, std::pair<string_view, type_mask_t> value)
-{
-    assert(value.second == string_type  ||  (value.second == null_type  &&  value.first.length() == 0));
-    columns_[index].values.emplace_back(value.second, std::string(value.first.begin(), value.first.end()));
-}
-
-inline void dataset::add_column_double_data(size_t index, std::pair<string_view, type_mask_t> value)
-{
-    assert(value.second == double_type  ||  (value.second == null_type  &&  value.first.length() == 0));
-    columns_[index].values.emplace_back(
-        value.second,
-        strtod(value.first.begin(), nullptr));
-}
-
-inline void dataset::add_column_integer_data(size_t index, std::pair<string_view, type_mask_t> value)
-{
-    assert(value.second == integer_type  ||  (value.second == null_type  &&  value.first.length() == 0));
-    columns_[index].values.emplace_back(
-        value.second,
-        std::uint32_t(atol(value.first.begin())));
+    return dd_.cell(row_, column_).is_null();
 }
 
 inline dataset::row_data dataset::row(size_t row) const
@@ -199,6 +49,192 @@ inline dataset::row_data dataset::operator[](size_t n) const
     return row(n);
 }
 
+inline size_t const dataset::rows() const
+{
+    if (columns() == 0)
+        return 0;
+
+#ifndef NDEBUG
+    for (size_t loop=1; loop<column_values_.size(); ++loop)
+        assert(column_values_[loop].size() == column_values_[0].size());
+#endif
+    return column_values_[0].size();
+}
+
+inline type_mask_t const dataset::column_type(size_t column) const
+{
+    return column_info_[column].second;
+}
+
+template<typename T>
+inline std::vector<T> dataset::extract_column(size_t column, bool include_nulls) const
+{
+    std::vector<T> result;
+    result.reserve(column_values_[column].size());
+    for (auto &value : column_values_[column])
+        if (include_nulls  ||  !value.is_null())
+            result.push_back(value.get<T>());
+    return result;
+}
+
+inline size_t const dataset::lookup_column(char const *name) const
+{
+    size_t index = 0;
+    for (auto const &column : column_info_)
+    {
+        if (column.first == name)
+            return index;
+        ++index;
+    }
+    throw invalid_column_name();
+}
+
+
+
+
+
+inline dataset::cell_value::cell_value(string_view string)
+  : string_(string)
+{
+}
+
+template<>
+inline
+double dataset::cell_value::get() const
+{
+    return strtod(string_.begin(), nullptr);
+}
+
+template<>
+inline
+std::uint32_t dataset::cell_value::get() const
+{
+    return strtol(string_.begin(), nullptr, 10);
+}
+
+template<>
+inline
+string_view dataset::cell_value::get() const
+{
+    return string_;
+}
+
+template<>
+inline
+std::string dataset::cell_value::get() const
+{
+    return std::string(string_.begin(), string_.end());
+}
+
+
+
+
+
+
+
+
+
+namespace { // anonymous namespace
+
+template<typename It>
+inline
+It find_eol(It it, It ite)
+{
+    while (it != ite)
+    {
+        detail::read_field(it, ite);
+        if (it == ite  ||  *it == '\r'  ||  *it == '\n')
+            return it;
+        assert(*it == ',');
+        ++it;
+    }
+    return it;
+}
+
+}   // anonymous namespace
+
+template<typename It>
+inline
+bool const dataset::attach(It begin, It end, std::uint64_t max_records)
+{
+    typedef 
+    std::function<void (unsigned, string_view &, type_mask_t)>
+    store_fn_t;
+
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using std::placeholders::_3;
+    store_fn_t store         = std::bind(&dataset::create_column, this, _1, _2, _3);
+    store_fn_t store_fields  = std::bind(&dataset::store_field, this, _1, _2, _3);
+
+    while (begin != end  &&  (max_records == 0  ||  rows() < max_records))
+    {
+        auto eol = find_eol(detail::ltrim(begin, end), end);
+        if (begin != end)
+        {
+            process_record(begin, eol, store);
+            assert(begin == eol);
+            store = store_fields;
+        }
+    }
+
+    return true;
+}
+
+inline bool const dataset::attach(char const *data, std::uint64_t max_records)
+{
+    return attach(data, data+strlen(data), max_records);
+}
+
+
+inline void dataset::create_column(unsigned index, string_view const &name, type_mask_t /*type*/)
+{
+#ifdef NDEBUG
+    index;
+#else
+    assert(index == column_info_.size());
+#endif
+    column_info_.push_back(column_info_t(name, 0));
+    column_values_.push_back(string_list_t());
+}
+
+template<typename It, typename Fn>
+inline
+bool const dataset::process_record(It &begin, It end, Fn fn)
+{
+    for (unsigned index=0; begin!=end; ++index)
+    {
+        auto field = detail::read_field(begin, end);
+        fn(index, field.first, field.second);
+        if (begin!=end)
+        {
+            assert(*begin == ',');
+            ++begin;
+        }
+    }
+
+    return true;
+}
+
+inline void dataset::store_field(unsigned index, string_view const &value, type_mask_t type)
+{
+    assert(index < column_info_.size());
+
+    if (type != null_type)
+    {
+        // if the column type doesn't match the new type, then
+        // the column type will be a string
+        if (column_info_[index].second == 0)
+            column_info_[index].second = type;
+        else if (column_info_[index].second != type)
+            column_info_[index].second = string_type;
+    }
+
+    column_values_[index].emplace_back(value);
+    assert(column_info_.size() == column_values_.size());
+}
+
+
 
 /*
     serialization free functions
@@ -206,16 +242,19 @@ inline dataset::row_data dataset::operator[](size_t n) const
 
 template<typename E, typename T>
 inline
-std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_data::cell const &value)
+std::basic_ostream<E, T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_data::cell_reference const &value)
 {
-    switch (value.type())
+    if (!value.is_null())
     {
-        case string_type:   o << value.get<std::string>();      break;
-        case double_type:   o << value.get<double>();           break;
-        case integer_type:  o << value.get<std::uint32_t>();    break;
-        case null_type:                                         break;
-        default:            assert(!"Unknown value type");
+        switch (value.type())
+        {
+            case string_type:   o << value.get<std::string>();      break;  /// !!! escape " quote with "" 
+            case double_type:   o << value.get<double>();           break;
+            case integer_type:  o << value.get<std::uint32_t>();    break;
+            default:            assert(!"Unknown value type");
+        }
     }
+
     return o;
 }
 
@@ -242,21 +281,21 @@ std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset::row_dat
 
 template<typename E, typename T>
 inline
-std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset const &ds)
+std::basic_ostream<E,T> &operator<<(std::basic_ostream<E,T> &o, dataset const &dd)
 {
     bool first = true;
-    for (auto const &column : ds.columns_)
+    for (auto const &column : dd.column_info_)
     {
         if (first)
             first = false;
         else
             o << ',';
-        o << '\"' << column.name << '\"';
+        o << '\"' << column.first << '\"';
     }
     o << "\n";
 
-    for (size_t loop=0; loop<ds.rows(); ++loop)
-        o << ds[loop] << "\n";
+    for (size_t loop=0; loop<dd.rows(); ++loop)
+        o << dd[loop] << "\n";
     return o;
 }
 

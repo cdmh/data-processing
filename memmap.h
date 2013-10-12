@@ -170,7 +170,7 @@ inline file<T>::file() noexcept
 
 template<typename T>
 inline file<T>::file(const std::basic_string<T> &filepath, file_access access) noexcept
-    : err_(0),
+  : err_(0),
     handle_(MEMMAP_INVALID_HANDLE)
 {
     if (access == readonly)
@@ -251,7 +251,7 @@ inline mapped_memory<T, F>::mapped_memory(file_handle_t &handle,
 
 template <typename T, typename F>
 inline mapped_memory<T, F>::mapped_memory(F &file, file_access access)
-    : ptr_(0),
+  : ptr_(0),
     err_(0)
 {
     memset(&detail_, 0, sizeof(detail_));

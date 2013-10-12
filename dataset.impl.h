@@ -61,6 +61,14 @@ inline size_t const dataset::rows() const
     return column_values_[0].size();
 }
 
+inline std::string dataset::column_title(size_t column) const
+{
+    return
+        std::string(
+            column_info_[column].first.begin(),
+            column_info_[column].first.end());
+}
+
 inline type_mask_t const dataset::column_type(size_t column) const
 {
     return column_info_[column].second;

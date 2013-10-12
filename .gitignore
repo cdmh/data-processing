@@ -12,11 +12,5 @@
 *.la
 *.a
 
-Debug/*
-Release/*
-data/*
 *.suo
-x64/*
-examples/keyword-extraction/x64/
-examples/keyword-extraction/Debug/
-examples/keyword-extraction/Release/
+bin/*

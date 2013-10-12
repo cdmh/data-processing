@@ -34,6 +34,7 @@ class dataset
     column_data                         column(char const *name)         const;
     size_t                  const       columns()                        const;
     type_mask_t             const       column_type(size_t column)       const;
+    std::string                         column_title(size_t column)      const;
     void                                erase_column(size_t column);
     template<typename T> std::vector<T> extract_column(size_t column, bool include_nulls=false) const;
     size_t                  const       lookup_column(char const *name)  const;
@@ -49,11 +50,8 @@ class dataset
 
   private:
     typedef std::pair<string_view, type_mask_t> column_info_t;
-
+    typedef std::vector<cell_value>             string_list_t;
     std::vector<column_info_t> column_info_;
-    std::vector<type_mask_t>   incl_type_mask_;
-
-    typedef std::vector<cell_value> string_list_t;
     std::vector<string_list_t> column_values_;
 
     template<typename E, typename T>

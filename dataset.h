@@ -76,7 +76,7 @@ class dataset::row_data
 
   private:
     dataset const &dd_;
-    size_t         const  row_;
+    size_t  const  row_;
 };
 
 class dataset::row_data::cell_reference
@@ -100,8 +100,8 @@ class dataset::row_data::cell_reference
 
     private:
     dataset const &dd_;
-    size_t         const  row_;
-    size_t         const  column_;
+    size_t  const  row_;
+    size_t  const  column_;
 };
 
 class dataset::cell_value

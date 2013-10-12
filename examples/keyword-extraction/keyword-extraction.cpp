@@ -4,17 +4,23 @@
 
 namespace {     // anonymous namespace
 
-std::vector<std::string> extract_words(std::string const &string)
+using cdmh::data_processing::string_view;
+
+std::vector<string_view> extract_words(string_view const &string)
 {
     using cdmh::data_processing::detail::ltrim;
 
-    std::vector<std::string> words;
+    std::vector<string_view> words;
 
     auto it  = string.begin();
     auto ite = string.end();
-    for (auto begin=ltrim(it,ite); it!=ite; ++it)
+    while (it!=ite)
     {
-        words.push_back(std::string(begin,it));
+        auto begin = it;
+        it = std::find_if(it, ite, [](char ch) { return ch == ' '; });
+        words.emplace_back(begin, it);
+        if (it != ite)
+            ltrim(++it,ite);
     }
 
     return words;
@@ -24,6 +30,10 @@ std::vector<std::string> extract_words(std::string const &string)
 
 int main(int argc, char const *argv[])
 {
+#if defined(_MSC_VER)  &&  defined(_DEBUG)
+    _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     char const *filename = "\\test-data\\keyword-extraction\\train.csv";
     cdmh::memory_mapped_file<char> mmf(filename);
     if (!mmf.is_open())
@@ -36,12 +46,17 @@ int main(int argc, char const *argv[])
     char const *it = mmf.get();
     char const *ite = it + mmf.size();
     cdmh::data_processing::dataset dd;
-    dd.attach(it, ite);
+#ifdef NDEBUG
+    size_t num_rows = 0;
+#else
+    size_t num_rows = 200;
+#endif
+    dd.attach(it, ite, num_rows);
 
     std::cout << "\n";
     for (size_t loop=0; loop<dd.columns(); ++loop)
     {
-        std::cout << loop << ": " << std::setw(15) << std::left << dd.column_title(loop);
+        std::cout << std::setw(2) << loop << ": " << std::setw(25) << std::left << dd.column_title(loop);
         switch (dd.column_type(loop))
         {
             case string_type:   std::cout << "\tstring";    break;
@@ -54,8 +69,10 @@ int main(int argc, char const *argv[])
     // id, title, body, tags
     for (size_t loop=0; loop<dd.rows(); ++loop)
     {
-        //auto title = dd[loop][3].get<std::string>();
-        //std::vector<std::string> words = extract_words(title);
+        auto title = dd[loop][3].get<string_view>();
+        auto words = extract_words(title);
+        for (auto const &word : words)
+            ;
     }
 
 	return 0;

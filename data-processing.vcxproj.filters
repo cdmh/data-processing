@@ -39,31 +39,25 @@
     <ClInclude Include="mapped_csv.detail.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dataset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="data-processing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="maths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="delimited_data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="data_processing.detail.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dataset.impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dataset.cell_value.h">
+    <ClInclude Include="dataset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dataset.column_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dataset.row_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset.impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

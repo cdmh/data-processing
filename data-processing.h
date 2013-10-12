@@ -66,7 +66,7 @@ bool const operator==(string_view const &first, char const *second)
     if (len1 != len2)
         return false;
 
-    return (strcmp(first.begin(), second) == 0);
+    return (strncmp(first.begin(), second, len1) == 0);
 }
 
 template<typename E, typename T>
@@ -94,7 +94,9 @@ static cdmh::data_processing::type_mask_t const null_type    = 1 << 3;
 
 // project header files
 #include "dataset.h"
-#include "delimited_data.h"
 #include "mapped_csv.h"
+#include "maths.h"
 
 #include "dataset.impl.h"
+#include "dataset.column_data.h"
+#include "dataset.row_data.h"

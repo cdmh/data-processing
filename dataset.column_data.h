@@ -4,65 +4,45 @@
 
 #pragma once
 
+#include <algorithm>
+
 namespace cdmh {
 namespace data_processing {
 
 /*
     dataset::column_data member functions
 */
-inline dataset::column_data::column_data(dataset &ds, size_t column)
-  : ds_(ds), column_(column)
+inline dataset::column_data::column_data(dataset const &ds, size_t column)
+  : dd_(ds), column_(column)
 {
 }
 
-inline dataset::column_data::column_data(dataset &ds, char const *name)
-  : ds_(ds), column_(ds_.lookup_column(name))
+inline dataset::column_data::column_data(dataset const &ds, char const *name)
+  : dd_(ds), column_(dd_.lookup_column(name))
 {
 }
 
 inline dataset::column_data::column_data(column_data const &other)
-  : ds_(other.ds_), column_(other.column_)
+  : dd_(other.dd_), column_(other.column_)
 {
-}
-
-inline void dataset::column_data::clear()
-{
-    ds_.clear_column(column_);
 }
 
 template<typename T>
 inline
-std::vector<T> dataset::column_data::detach()
+std::vector<T> dataset::column_data::extract() const
 {
-    return ds_.detach_column<T>(column_);
-}
-
-inline void dataset::column_data::erase()
-{
-    return ds_.erase_column(column_);
-}
-
-template<typename T>
-inline
-std::vector<T> dataset::column_data::extract()
-{
-    return ds_.extract_column<T>(column_);
-}
-
-inline void dataset::column_data::swap(size_t column)
-{
-    return ds_.swap_columns(column_, column);
+    return dd_.extract_column<T>(column_);
 }
 
 inline size_t const dataset::column_data::size() const
 {
-    return ds_.at(column_).size();
+    return dd_.cells(column_).size();
 }
 
 // returns the number of non-null values in the column
 inline size_t const dataset::column_data::count() const
 {
-    auto const &values = ds_.at(column_);
+    auto const &values = dd_.cells(column_);
     return std::count_if(
         values.begin(),
         values.end(),
@@ -74,7 +54,7 @@ inline size_t const dataset::column_data::count() const
 // returns the number of null values in the column
 inline size_t const dataset::column_data::count_null() const
 {
-    auto const &values = ds_.at(column_);
+    auto const &values = dd_.cells(column_);
     return std::count_if(
         values.begin(),
         values.end(),
@@ -85,9 +65,9 @@ inline size_t const dataset::column_data::count_null() const
 
 inline size_t const dataset::column_data::count_unique() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
-    if (ds_.column_type(column_) == double_type)
+    if (dd_.column_type(column_) == double_type)
         return count_unique<double>();
     return count_unique<std::uint32_t>();
 }
@@ -96,7 +76,7 @@ template<typename T>
 inline size_t const dataset::column_data::count_unique() const
 {
     std::unordered_map<T, unsigned> counts;
-    for (auto const &value : ds_.at(column_))
+    for (auto const &value : dd_.cells(column_))
         if (!value.is_null())
             counts[value.get<T>()]++;
     return counts.size();
@@ -104,47 +84,47 @@ inline size_t const dataset::column_data::count_unique() const
 
 inline double const dataset::column_data::mean() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
-    if (ds_.column_type(column_) == double_type)
+    if (dd_.column_type(column_) == double_type)
         return sum<double>() / count();
     return (double)sum<std::uint32_t>() / count();
 }
 
 inline double const dataset::column_data::median() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
-    if (ds_.column_type(column_) == double_type)
-        return maths::median(ds_.extract_column<double>(column_, false));
-    return (double)maths::median(ds_.extract_column<std::uint32_t>(column_, false));
+    if (dd_.column_type(column_) == double_type)
+        return maths::median(dd_.extract_column<double>(column_, false));
+    return (double)maths::median(dd_.extract_column<std::uint32_t>(column_, false));
 }
 
 inline double const dataset::column_data::mode() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
-    if (ds_.column_type(column_) == double_type)
-        return maths::mode(ds_.extract_column<double>(column_, false));
-    return (double)maths::mode(ds_.extract_column<std::uint32_t>(column_, false));
+    if (dd_.column_type(column_) == double_type)
+        return maths::mode(dd_.extract_column<double>(column_, false));
+    return (double)maths::mode(dd_.extract_column<std::uint32_t>(column_, false));
 }
 
 inline double const dataset::column_data::standard_deviation() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
-    if (ds_.column_type(column_) == double_type)
-        return maths::standard_deviation(ds_.extract_column<double>(column_, false));
-    return maths::standard_deviation(ds_.extract_column<std::uint32_t>(column_, false));
+    if (dd_.column_type(column_) == double_type)
+        return maths::standard_deviation(dd_.extract_column<double>(column_, false));
+    return maths::standard_deviation(dd_.extract_column<std::uint32_t>(column_, false));
 }
 
 template<typename T>
 inline T dataset::column_data::max() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
     T max = std::numeric_limits<T>::min();
-    for (auto const &value : ds_.at(column_))
+    for (auto const &value : dd_.cells(column_))
     {
         if (!value.is_null())
         {
@@ -159,10 +139,10 @@ inline T dataset::column_data::max() const
 template<typename T>
 inline T dataset::column_data::min() const
 {
-    assert(ds_.column_type(column_) == integer_type  ||  ds_.column_type(column_) == double_type);
+    assert(dd_.column_type(column_) == integer_type  ||  dd_.column_type(column_) == double_type);
 
     T min = std::numeric_limits<T>::max();
-    for (auto const &value : ds_.at(column_))
+    for (auto const &value : dd_.cells(column_))
     {
         if (!value.is_null())
         {
@@ -177,7 +157,7 @@ inline T dataset::column_data::min() const
 template<typename T>
 inline T const dataset::column_data::sum() const
 {
-    auto const &values = ds_.at(column_);
+    auto const &values = dd_.cells(column_);
     return std::accumulate(
         values.begin(),
         values.end(),
@@ -187,17 +167,17 @@ inline T const dataset::column_data::sum() const
         });
 }
 
-inline dataset::column_data dataset::column(int n)
+inline dataset::column_data dataset::column(int n) const
 {
     return column((size_t)n);
 }
 
-inline dataset::column_data dataset::column(size_t column)
+inline dataset::column_data dataset::column(size_t column) const
 {
     return column_data(*this, column);
 }
 
-inline dataset::column_data dataset::column(char const *name)
+inline dataset::column_data dataset::column(char const *name) const
 {
     return column_data(*this, name);
 }

@@ -11,25 +11,29 @@
 // --------
 //
 //  filesize_t get_file_size(file_handle_t &handle);
-//  template<typename T> class memory_mapped_file
+//  template<typename T> class mapped_memory
 //  template<typename T> class file
 
 #pragma once
 
 #ifdef _MSC_VER
-#define MMAP_WINDOWS
+#   define MMAP_WINDOWS
 
-#ifndef _WINDOWS_
-#error Please include windows.h first
-#endif
+#   if _MSC_VER <= 1800
+#       define noexcept
+#   endif
 
-#ifdef _WIN64
-#define MMAP_USE_INT64
-#endif
+#   ifndef _WINDOWS_
+#       error Please include windows.h first
+#   endif
+
+#   ifdef _WIN64
+#       define MMAP_USE_INT64
+#   endif
 #endif
 
 #if !defined(MMAP_POSIX)  &&  !defined(MMAP_WINDOWS)
-#error No memory map configuration defined: MMAP_POSIX or MMAP_WINDOWS
+#   error No memory map configuration defined: MMAP_POSIX or MMAP_WINDOWS
 #endif
 
 #include <sys/stat.h>
@@ -124,17 +128,11 @@ typedef enum file_access_ { readonly, readwrite } file_access;
 class file_already_attached : public std::exception
 {
     public:
-    virtual char const * what() const throw()
+    virtual char const * what() const noexcept
     {
         return "boost::file_already_attached";
     }
 };
-
-#if defined(BOOST_MSVC)
-#   define THROWS_ALREADY_ATTACHED
-#else
-#   define THROWS_ALREADY_ATTACHED throw(file_already_attached)
-#endif
 
 
 template<typename T=char>
@@ -146,32 +144,32 @@ class file
     std::basic_string<T> filepath_;
 
     public:
-    file() throw();
-    file(std::basic_string<T> const &filepath, file_access access) throw();
-    ~file() throw();
+    file() noexcept;
+    file(std::basic_string<T> const &filepath, file_access access) noexcept;
+    ~file() noexcept;
 
-    bool close() throw();
-    bool create(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED;
+    bool close() noexcept;
+    bool create(const std::basic_string<T> &filepath);
 
-    err_t                error()    const throw() { return err_;                             }
-    std::basic_string<T> filepath() const throw() { return filepath_;                        }
-    file_handle_t        handle()   const throw() { return handle_;                          }
-    filesize_t           size()     const throw() { return get_file_size(handle_);           }
-    bool                 is_open()  const throw() { return handle_ != MEMMAP_INVALID_HANDLE; }
+    err_t                error()    const noexcept { return err_;                             }
+    std::basic_string<T> filepath() const noexcept { return filepath_;                        }
+    file_handle_t        handle()   const noexcept { return handle_;                          }
+    filesize_t           size()     const noexcept { return get_file_size(handle_);           }
+    bool                 is_open()  const noexcept { return handle_ != MEMMAP_INVALID_HANDLE; }
 
-    bool open_readonly(const std::basic_string<T> &filepath)  THROWS_ALREADY_ATTACHED;
-    bool open_readwrite(const std::basic_string<T> &filepath) THROWS_ALREADY_ATTACHED;
+    bool open_readonly(const std::basic_string<T> &filepath);
+    bool open_readwrite(const std::basic_string<T> &filepath);
 };
 
 template<typename T>
-inline file<T>::file() throw()
+inline file<T>::file() noexcept
     : err_(0),
     handle_(MEMMAP_INVALID_HANDLE)
 {
 }
 
 template<typename T>
-inline file<T>::file(const std::basic_string<T> &filepath, file_access access) throw()
+inline file<T>::file(const std::basic_string<T> &filepath, file_access access) noexcept
     : err_(0),
     handle_(MEMMAP_INVALID_HANDLE)
 {
@@ -182,7 +180,7 @@ inline file<T>::file(const std::basic_string<T> &filepath, file_access access) t
 }
 
 template<typename T>
-inline file<T>::~file() throw()
+inline file<T>::~file() noexcept
 {
     this->close();
 }
@@ -192,13 +190,13 @@ inline file<T>::~file() throw()
 
 // memory mapped file management class
 template <typename T, typename F=file<char> >
-class memory_mapped_file
+class mapped_memory
 {
     public:
-    memory_mapped_file();
-    memory_mapped_file(F &file, file_access access);
-    memory_mapped_file(file_handle_t &handle, file_access access);
-    ~memory_mapped_file();
+    mapped_memory();
+    mapped_memory(F &file, file_access access);
+    mapped_memory(file_handle_t &handle, file_access access);
+    ~mapped_memory();
 
     bool map_readonly(file_handle_t handle);
     bool map_readwrite(file_handle_t handle);
@@ -206,10 +204,10 @@ class memory_mapped_file
     // this is exposed publicly for completeness, but is
     // unlikely to be used by the library user
     bool map(file_handle_t       &handle,
-                protection_t        &prot,
-                flags_or_security_t &fos,
-                length_t            &len,
-                offset_t            &off);
+             protection_t        &prot,
+             flags_or_security_t &fos,
+             length_t            &len,
+             offset_t            &off);
 
     // release the mapping
     bool     release();
@@ -231,7 +229,7 @@ class memory_mapped_file
 
 // cross platform default ctor
 template <typename T, typename F>
-inline memory_mapped_file<T, F>::memory_mapped_file()
+inline mapped_memory<T, F>::mapped_memory()
     : ptr_(0),
     err_(0)
 {
@@ -239,7 +237,7 @@ inline memory_mapped_file<T, F>::memory_mapped_file()
 }
 
 template <typename T, typename F>
-inline memory_mapped_file<T, F>::memory_mapped_file(file_handle_t &handle,
+inline mapped_memory<T, F>::mapped_memory(file_handle_t &handle,
                                                 file_access    access)
     : ptr_(0),
     err_(0)
@@ -252,7 +250,7 @@ inline memory_mapped_file<T, F>::memory_mapped_file(file_handle_t &handle,
 }
 
 template <typename T, typename F>
-inline memory_mapped_file<T, F>::memory_mapped_file(F &file, file_access access)
+inline mapped_memory<T, F>::mapped_memory(F &file, file_access access)
     : ptr_(0),
     err_(0)
 {
@@ -264,9 +262,54 @@ inline memory_mapped_file<T, F>::memory_mapped_file(F &file, file_access access)
 }
 
 template <typename T, typename F>
-inline memory_mapped_file<T, F>::~memory_mapped_file()
+inline mapped_memory<T, F>::~mapped_memory()
 {
     this->release();
+}
+
+template<typename T>
+class memory_mapped_file
+{
+  public:
+    explicit memory_mapped_file(char const * const filename);
+    explicit memory_mapped_file(std::string const &filename);
+    ~memory_mapped_file();
+
+    void             close();
+    bool const       is_open() const          { return mm_.is_mapped(); }
+    T               *get()                    { return mm_.get();       }
+    T const         *get()     const          { return mm_.get();       }
+    filesize_t const size()    const noexcept { return file_.size();    }
+
+  private:
+    file<char>       file_;
+    mapped_memory<T> mm_;
+};
+
+template<typename T>
+inline memory_mapped_file<T>::memory_mapped_file(char const * const filename)
+  : file_(filename, readonly),
+    mm_(file_, readonly)
+{
+}
+
+template<typename T>
+inline memory_mapped_file<T>::memory_mapped_file(std::string const &filename)
+  : memory_mapped_file(filename.c_str())
+{
+}
+
+template<typename T>
+inline memory_mapped_file<T>::~memory_mapped_file()
+{
+    close();
+}
+
+template<typename T>
+inline void memory_mapped_file<T>::close()
+{
+    mm_.release();
+    file_.close();
 }
 
 }   // namespace cdmh

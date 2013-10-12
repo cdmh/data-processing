@@ -69,6 +69,8 @@ bool const operator==(string_view const &first, char const *second)
     return (strncmp(first.begin(), second, len1) == 0);
 }
 
+bool const operator==(string_view const &first, string_view const &second);
+
 template<typename E, typename T>
 inline
 std::basic_ostream<E, T> &operator<<(std::basic_ostream<E, T> &o, string_view const &str)
@@ -77,7 +79,6 @@ std::basic_ostream<E, T> &operator<<(std::basic_ostream<E, T> &o, string_view co
     return o;
 }
 
-//bool const operator==(string_view const &first, string_view const &second);
 
 }   // namespace data_processing
 }   // namespace cdmh

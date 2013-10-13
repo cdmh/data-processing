@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\bayesian_classifier">
+      <UniqueIdentifier>{297203f9-338b-42e6-85fa-ce56c7c5d226}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -25,6 +28,15 @@
     </ClCompile>
     <ClCompile Include="keyword-extraction.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="naive-bayes-classifier\src\Domain.cpp">
+      <Filter>Source Files\bayesian_classifier</Filter>
+    </ClCompile>
+    <ClCompile Include="naive-bayes-classifier\src\ActionClassifier.cpp">
+      <Filter>Source Files\bayesian_classifier</Filter>
+    </ClCompile>
+    <ClCompile Include="naive-bayes-classifier\src\BayesianClassifier.cpp">
+      <Filter>Source Files\bayesian_classifier</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

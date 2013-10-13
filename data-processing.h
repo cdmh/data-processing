@@ -17,6 +17,10 @@
 
 #include "data_processing.detail.h"
 
+#if WIN32 && !defined(strncasecmp)
+#define strncasecmp _strnicmp
+#endif
+
 namespace cdmh {
 namespace data_processing {
 
@@ -72,6 +76,25 @@ bool const operator==(string_view const &first, char const *second)
         return false;
 
     return (strncmp(first.begin(), second, len1) == 0);
+}
+
+inline
+bool const operator<(string_view const &first, string_view const &second)
+{
+    auto const len1 = first.length();
+    auto const len2 = second.length();
+    if (len1 < len2)
+    {
+        auto cmp = strncasecmp(first.begin(), second.begin(), len1);
+        return (cmp <= 0);
+    }
+    else if (len1 > len2)
+    {
+        auto cmp = strncasecmp(first.begin(), second.begin(), len2);
+        return (cmp < 0);
+    }
+
+    return strncasecmp(first.begin(), second.begin(), len1) < 0;
 }
 
 bool const operator==(string_view const &first, string_view const &second);

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <locale>
+#include <map>
 #include "../../data-processing.h"
 
 namespace {     // anonymous namespace
@@ -22,7 +23,7 @@ char const * const english_stopwords[] = {
     "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four",
     "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have",
     "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself",
-    "him", "himself", "his", "how", "however", "hundred", "ie", "if", "in", "inc", "indeed",
+    "him", "himself", "his", "how", "however", "hundred", "i", "ie", "if", "in", "inc", "indeed",
     "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly",
     "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine",
     "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name",
@@ -52,35 +53,10 @@ bool const is_stop_word(string_view const &word)
             english_stopwords,
             stopwords_end,
             [](char const *first, char const *second) {
-                if (strcmp(first, second) < 0)
-                    std::cout << first << ", " << second << " " << strcmp(first, second) << "\n";
                 return strcmp(first, second) < 0;
             }));
 
-#if WIN32 && !defined(strncasecmp)
-#define strncasecmp _strnicmp
-#endif
-
-    return
-        std::binary_search(
-            english_stopwords,
-            stopwords_end,
-            word,
-            [](string_view const &first, string_view const &second) {
-                auto const len1 = first.length();
-                auto const len2 = second.length();
-                if (len1 < len2)
-                {
-                    auto cmp = strncasecmp(first.begin(), second.begin(), len1);
-                    return (cmp <= 0);
-                }
-                else if (len1 > len2)
-                {
-                    auto cmp = strncasecmp(first.begin(), second.begin(), len2);
-                    return (cmp < 0);
-                }
-                return strncasecmp(first.begin(), second.begin(), len1) < 0;
-            });
+    return std::binary_search(english_stopwords, stopwords_end, word);
 }
 
 template<typename It>
@@ -93,11 +69,14 @@ It find_word_begin(It &it,It ite)
     return it;
 }
 
-string_view next_word(char const *&it, char const *ite)
+string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
 {
     auto begin = find_word_begin(it,ite);
-    it = std::find_if(it, ite, [](char ch) { return ch == ' '; });
-    return string_view(begin, it);
+    it = std::find_if(it, ite, [](char ch) { return (ch < '0'  ||  ch > '9')  &&  (ch < 'a'  ||  ch > 'z')  &&  (ch < 'A'  ||  ch > 'Z')  && ch != '-'; });
+    auto word = string_view(begin, it);
+    return (ignore_stopwords  &&  is_stop_word(word))?
+        next_word(it, ite)
+      : word;
 }
 
 template<typename Out>
@@ -107,15 +86,11 @@ void calculate_hashes(string_view const &string, Out ito, bool ignore_stopwords=
     std::collate<char> const &col = std::use_facet<std::collate<char>>(loc);
     auto it  = string.begin();
     auto ite = string.end();
-    std::cout << string << "\n";
     while (it != ite)
     {
-        string_view const word = next_word(it, ite);
-        if (!ignore_stopwords  ||  !is_stop_word(word))
-        {
-            std::cout << "    " << word << "\n";
+        string_view const word = next_word(it, ite, ignore_stopwords);
+        if (word.length() > 0)
             *ito++ = col.hash(word.begin(), word.end());
-        }
     }
 }
 
@@ -145,7 +120,60 @@ double const mean(It begin, It end)
     return sum(begin, end) / type(count);
 }
 
+
+template<typename Words>
+void count_words(string_view const &string, Words &words, bool ignore_stopwords)
+{
+    auto it  = string.begin();
+    auto ite = string.end();
+    while (it != ite)
+    {
+        string_view const word = next_word(it, ite, ignore_stopwords);
+        if (word.length() > 0)
+            words[word]++;
+    }
+}
+
+void create_word_list_and_map(
+    cdmh::data_processing::dataset const &ds,
+    int                                   column,
+    std::vector<string_view>             &list,
+    std::map<string_view, int>           &indices,
+    bool                                  ignore_stopwords=true)
+{
+    typedef std::map<string_view, unsigned> words_t;
+    words_t word_map;
+
+    // count up the words and
+    for (size_t loop=0; loop<ds.rows(); ++loop)
+        count_words(ds[loop][column].get<string_view>(), word_map, ignore_stopwords);
+
+    // add the words to the list
+    list.reserve(word_map.size());
+    std::transform(
+        word_map.begin(),
+        word_map.end(),
+        std::back_inserter(list),
+        [](words_t::value_type const &word_and_count) {
+            return word_and_count.first;
+        });
+
+    // map the words to the index into the list
+    for (int loop=0; loop<list.size(); ++loop)
+        indices[list[loop]] = loop;
+}
+
 }               // anonymous namespace
+
+
+#include "naive-bayes-classifier/src/BayesianClassifier.h"
+#include "naive-bayes-classifier/src/ActionClassifier.h"
+#include "naive-bayes-classifier/src/Domain.h"
+
+void classify(BayesianClassifier &classifier, string_view const &title)
+{
+    classifier.calculateOutput({});
+}
 
 int main(int argc, char const *argv[])
 {
@@ -161,41 +189,95 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+
     std::cout << "Loading file ...";
-    cdmh::data_processing::dataset dd;
+    cdmh::data_processing::dataset ds;
 #ifdef NDEBUG
     size_t num_rows = 0;
 #else
-    size_t num_rows = 200;
+    size_t num_rows = 5;
 #endif
-    dd.attach(mmf.get(), mmf.get() + mmf.size(), num_rows);
+    ds.attach(mmf.get(), mmf.get() + mmf.size(), num_rows);
 
     std::cout << "\n";
-    for (size_t loop=0; loop<dd.columns(); ++loop)
-    {
-        std::cout << std::setw(2) << std::right << loop << ": " << std::setw(25) << std::left << dd.column_title(loop);
-        switch (dd.column_type(loop))
-        {
-            case string_type:   std::cout << "\tstring";    break;
-            case double_type:   std::cout << "\tdouble";    break;
-            case integer_type:  std::cout << "\tinteger";   break;
-        }
-        std::cout << "\n";
-    }
+    ds.write_column_info(std::cout);
+    std::cout << "\n";
 
     // id, title, body, tags
-    for (size_t loop=0; loop<dd.rows(); ++loop)
+
+    std::vector<string_view>   title_words;
+    std::map<string_view, int> title_word_indices;
+    create_word_list_and_map(ds, 1, title_words, title_word_indices);
+
+    std::vector<string_view>   tag_words;
+    std::map<string_view, int> tag_word_indices;
+    create_word_list_and_map(ds, 3, tag_words, tag_word_indices);
+
+    /*
+     inspired by http://www.inf.ed.ac.uk/teaching/courses/inf2b/learnnotes/inf2b-learn-note07-2up.pdf
+    */
+
+    // create domains:
+    //     title_words.size() input domains
+    //     tag_words.size() output domains
+	std::vector<Domain> domains;
+    for (size_t d=0; d<title_words.size() + tag_words.size(); ++d)
+	    domains.emplace_back(0.0f, 1.0f, 2);  // min, max, number of values
+
+    // train a bayesian classifier
+    BayesianClassifier classifier(domains);
+    std::vector<float> training;
+    training.resize(title_words.size() + tag_words.size(), 0.0);
+    for (size_t loop=0; loop<ds.rows(); ++loop)
     {
-        auto title = dd[loop][1].get<string_view>();
-        std::vector<long> title_hashes;
-        calculate_hashes(title, std::back_inserter(title_hashes));
+        // reset the vector to contain zeros
+        for (float &value : training)
+            value = 0.0;
 
-        auto tags  = dd[loop][3].get<string_view>();
-        std::vector<long> tags_hashes;
-        calculate_hashes(tags, std::back_inserter(tags_hashes), false);
+        auto string = ds[loop][1].get<string_view>();
+        auto it  = string.begin();
+        auto ite = string.end();
+        while (it != ite)
+        {
+            string_view const word = next_word(it, ite);
+            if (word.length() > 0)
+            {
+                auto index = title_word_indices[word];
+                training[index] = 1.0;                                          // !!!binary title does/doesn't contain tag. Count might work better?
+            }
+        }
+        std::cout << "\n\n" << string;
 
-        std::cout << title << '\n' << tags << '\n';
+        string = ds[loop][3].get<string_view>();
+        it  = string.begin();
+        ite = string.end();
+        while (it != ite)
+        {
+            string_view const word = next_word(it, ite);
+            if (word.length() > 0)
+                training[title_words.size() + tag_word_indices[word]] = 1.0;    // !!!binary title does/doesn't contain tag. Count might work better?
+        }
+
+        std::cout << "\n";
+        for (float &value : training)
+            std::cout << (int)value;
+
+        std::cout << "\n";
+        for (size_t loop=0; loop<training.size(); ++loop)
+        {
+            if (training[loop])
+            {
+                if (loop < title_words.size())
+                    std::cout << title_words[loop] << " ";
+                else
+                    std::cout << "\n*** " << tag_words[loop - title_words.size()] << " ";
+            }
+        }
+        std::cout << "\n\n";
+        classifier.addRawTrainingData(training);
     }
 
+    classify(classifier, "Getting rid of site-specific hotkeys");
+    classify(classifier, "Remove old vCenter servers from VMWare vSphere Client login window");
 	return 0;
 }

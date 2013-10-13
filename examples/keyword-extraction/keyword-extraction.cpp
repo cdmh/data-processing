@@ -59,20 +59,27 @@ bool const is_stop_word(string_view const &word)
     return std::binary_search(english_stopwords, stopwords_end, word);
 }
 
+bool const is_word_char(char ch)
+{
+    return (ch >= '0'  &&  ch <= '9')
+       ||  (ch >= 'a'  &&  ch <= 'z')
+       ||  (ch >= 'A'  &&  ch <= 'Z')
+       ||   ch == '-'  ||  ch == '_';
+}
+
 template<typename It>
 inline
 It find_word_begin(It &it,It ite)
 {
-    while (it != ite  &&  (*it<'a'  ||  *it>'z')  &&  (*it<'A'  ||  *it>'Z')  &&  (*it != '_'))
+    while (it != ite  &&  !is_word_char(*it))
         ++it;
-
     return it;
 }
 
 string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
 {
     auto begin = find_word_begin(it,ite);
-    it = std::find_if(it, ite, [](char ch) { return (ch < '0'  ||  ch > '9')  &&  (ch < 'a'  ||  ch > 'z')  &&  (ch < 'A'  ||  ch > 'Z')  && ch != '-'; });
+    it = std::find_if(it, ite, [](char ch) { return !is_word_char(ch); });
     auto word = string_view(begin, it);
     return (ignore_stopwords  &&  is_stop_word(word))?
         next_word(it, ite)
@@ -258,9 +265,11 @@ int main(int argc, char const *argv[])
                 training[title_words.size() + tag_word_indices[word]] = 1.0;    // !!!binary title does/doesn't contain tag. Count might work better?
         }
 
+#ifndef NDEBUG
         std::cout << "\n";
         for (float &value : training)
             std::cout << (int)value;
+#endif
 
         std::cout << "\n";
         for (size_t loop=0; loop<training.size(); ++loop)

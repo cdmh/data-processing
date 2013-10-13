@@ -42,7 +42,12 @@ std::vector<T> split_string(U const &string, char const delim)
 class string_view
 {
   public:
-    string_view(char const *begin,char const *end): begin_(begin),end_(end)
+    string_view(char const *begin)
+      : begin_(begin), end_(begin + strlen(begin))
+    { }
+
+    string_view(char const *begin,char const *end)
+      : begin_(begin),end_(end)
     { }
 
     char const *begin() const { return begin_; }

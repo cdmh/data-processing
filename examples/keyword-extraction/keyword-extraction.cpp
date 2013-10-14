@@ -45,6 +45,7 @@ char const * const english_stopwords[] = {
     "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without",
     "would", "yet", "you", "your", "yours", "yourself", "yourselves" };
 
+inline
 bool const is_stop_word(string_view const &word)
 {
     auto const stopwords_end = english_stopwords + (sizeof(english_stopwords) / sizeof(english_stopwords[0]));
@@ -60,6 +61,7 @@ bool const is_stop_word(string_view const &word)
     return std::binary_search(english_stopwords, stopwords_end, word);
 }
 
+inline
 bool const is_word_char(char ch)
 {
     return (ch >= '0'  &&  ch <= '9')
@@ -77,6 +79,7 @@ It find_word_begin(It &it,It ite)
     return it;
 }
 
+inline
 string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
 {
     auto begin = find_word_begin(it,ite);
@@ -118,6 +121,7 @@ sum(It begin, It end)
 
 
 template<typename It>
+inline
 double const mean(It begin, It end)
 {
     using type = typename std::iterator_traits<It>::value_type;
@@ -130,6 +134,7 @@ double const mean(It begin, It end)
 
 
 template<typename Words>
+inline
 void count_words(string_view const &string, Words &words, bool ignore_stopwords)
 {
     auto it  = string.begin();
@@ -184,58 +189,65 @@ void create_word_list_and_map(
 class classifier
 {
   public:
-    explicit classifier(cdmh::data_processing::dataset const &ds) : ds_(ds)
+    classifier(cdmh::data_processing::dataset const &ds, bool use_body) : ds_(ds)
     {
         create_word_list_and_map(ds, 1, title_words, title_word_indices);
         create_word_list_and_map(ds, 3, tag_words, tag_word_indices);
+        if (use_body)
+            create_word_list_and_map(ds, 2, body_words, body_word_indices);
 
         // create domains:
         //     title_words.size() input domains
         //     tag_words.size() output domains
 	    std::vector<Domain> domains;
-        for (size_t d=0; d<title_words.size() + tag_words.size(); ++d)
+        for (size_t d=0; d<title_words.size() + body_words.size() + tag_words.size(); ++d)
 	        domains.emplace_back(0.0f, 1.0f, 2);  // min, max, number of values
         classifier_.reset(new BayesianClassifier(domains));
     }
 
-    void train(
-        size_t training_rows_begin,
-        size_t training_rows_end)
+    void train(size_t training_rows_begin, size_t training_rows_end)
+    {
+        process_rows(
+            training_rows_begin,
+            training_rows_end,
+            [this](std::vector<float> const &data) {
+                classifier_->addRawTrainingData(data);
+            });
+    }
+
+    void classify(string_view const &title)
+    {
+        classifier_->calculateOutput({});
+    }
+
+  private:
+    void process_rows(size_t begin, size_t end, std::function<void (std::vector<float>)> fn)
     {
         std::vector<float> training;
-        training.resize(title_words.size() + tag_words.size(), 0.0);
-        for (size_t loop=training_rows_begin; loop<training_rows_end; ++loop)
+        training.resize(title_words.size() + body_words.size() + tag_words.size(), 0.0);
+        for (size_t loop=begin; loop<end; ++loop)
         {
             // reset the vector to contain zeros
             for (float &value : training)
                 value = 0.0;
 
-            auto string = ds_[loop][1].get<string_view>();
-            auto it  = string.begin();
-            auto ite = string.end();
-            while (it != ite)
-            {
-                string_view const word = next_word(it, ite);
-                if (word.length() > 0)
-                {
-                    auto it = title_word_indices.find(word);
-                    assert(it != title_word_indices.end());
-                    training[it->second] = 1.0;    // !!!binary title does/doesn't contain tag. Count might work better?
-                }
-            }
-            std::cout << "\n\n" << string;
+            // !!!binary title does/doesn't contain tag. Count might work better?
+            process_words(loop, 1, title_word_indices, [&training](int n) { training[n] = 1.0; });
+            if (body_words.size() > 0)
+                process_words(loop, 2, body_word_indices, [&training, this](int n) { training[n + title_words.size()] = 1.0; });
+            process_words(loop, 3, tag_word_indices, [&training, this](int n) { training[n + body_words.size() + title_words.size()] = 1.0; });
 
-            string = ds_[loop][3].get<string_view>();
-            it  = string.begin();
-            ite = string.end();
-            while (it != ite)
+            std::cout << "\n\n" << ds_[loop][1].get<string_view>() << "\n";
+            for (size_t loop=0; loop<training.size(); ++loop)
             {
-                string_view const word = next_word(it, ite);
-                if (word.length() > 0)
+                if (training[loop])
                 {
-                    auto it = tag_word_indices.find(word);
-                    assert(it != tag_word_indices.end());
-                    training[it->second + title_words.size()] = 1.0;    // !!!binary title does/doesn't contain tag. Count might work better?
+                    if (loop < title_words.size())
+                        std::cout << title_words[loop] << " ";
+                    else if (loop < title_words.size() + body_words.size())
+                        std::cout << body_words[loop - title_words.size()] << " ";
+                    else
+                        std::cout << "\n*** " << tag_words[loop - title_words.size() - body_words.size()] << " ";
                 }
             }
 
@@ -245,25 +257,25 @@ class classifier
                 std::cout << (int)value;
 #endif
 
-            std::cout << "\n";
-            for (size_t loop=0; loop<training.size(); ++loop)
-            {
-                if (training[loop])
-                {
-                    if (loop < title_words.size())
-                        std::cout << title_words[loop] << " ";
-                    else
-                        std::cout << "\n*** " << tag_words[loop - title_words.size()] << " ";
-                }
-            }
-            std::cout << "\n\n";
-            classifier_->addRawTrainingData(training);
+            fn(training);
         }
     }
 
-    void classify(string_view const &title)
+    void process_words(size_t row, size_t column, std::map<string_view, int> &title_word_indices, std::function<void (int)> fn)
     {
-        classifier_->calculateOutput({});
+        auto string = ds_[row][column].get<string_view>();
+        auto it  = string.begin();
+        auto ite = string.end();
+        while (it != ite)
+        {
+            string_view const word = next_word(it, ite);
+            if (word.length() > 0)
+            {
+                auto it = title_word_indices.find(word);
+                assert(it != title_word_indices.end());
+                fn(it->second);
+            }
+        }
     }
 
   private:
@@ -277,6 +289,8 @@ class classifier
     std::map<string_view, int> title_word_indices;
     std::vector<string_view>   tag_words;
     std::map<string_view, int> tag_word_indices;
+    std::vector<string_view>   body_words;
+    std::map<string_view, int> body_word_indices;
 };
 
 int main(int argc, char const *argv[])
@@ -312,7 +326,7 @@ int main(int argc, char const *argv[])
     size_t const test_rows_begin     = training_rows_end + 1;
     size_t const test_rows_end       = ds.rows();
 
-    classifier bayesian(ds);
+    classifier bayesian(ds, false);
     bayesian.train(training_rows_begin, training_rows_end);
     bayesian.classify("Getting rid of site-specific hotkeys");
     bayesian.classify("Remove old vCenter servers from VMWare vSphere Client login window");

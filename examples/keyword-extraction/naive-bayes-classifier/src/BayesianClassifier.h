@@ -86,7 +86,7 @@ private:
 	 *
 	 * Beware : The file must not have an empty line at the end.
 	 */
-	void constructClassifier(std::string filename);
+	void constructClassifier(std::string const &filename);
 
 	/**
 	 * Calculate the probabilities for each possibility of inputs.
@@ -119,18 +119,18 @@ private:
 	/**
 	 * Update the probabilities after adding one set of training data.
 	 */
-	void updateProbabilities(TrainingData trainingData);
+	void updateProbabilities(TrainingData const &trainingData);
 
 	/**
 	 * Convert a vector<float> into a vector<int> by discretizing the values
 	 * using the domain for each column.
 	 */
-	TrainingData convertRawTrainingData(RawTrainingData floatVector);
+	TrainingData convertRawTrainingData(RawTrainingData const &floatVector);
 	
 	/**
 	 * Returns the domain of the output column.
 	 */
-	Domain getOuputDomain();
+	Domain getOutputDomain();
 
 public:
 	/**
@@ -139,26 +139,26 @@ public:
 	 *
 	 * Beware : The file must not have an empty line at the end.
 	 */
-	BayesianClassifier(std::string filename, std::vector<Domain> _domains);
+	BayesianClassifier(std::string filename, std::vector<Domain> const &_domains);
 
 	/**
 	 * BayesianClassifier constructor. It constructs a classifier with the specified domain.
 	 * Raw training data are not given, it is possible to add data after the construction.
 	 */
-	BayesianClassifier(std::vector<Domain> _domains);
+	BayesianClassifier(std::vector<Domain> const &_domains);
 
 	/**
 	 * Calculate the most probable output given this input with this formula :
 	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
 	 * The output with the highest probability is returned.
 	 */
-	int calculateOutput(std::vector<float> input);
+	int calculateOutput(std::vector<float> const &input);
 
 	/**
 	 * Calculate the probability of this output given this input.
  	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
 	 */
-	float calculateProbabilityOfOutput(RawTrainingData input, float output);
+	float calculateProbabilityOfOutput(RawTrainingData const &input, float output);
 
 	/**
 	 * Add raw training data from a file to adapt the classifier. 
@@ -166,13 +166,13 @@ public:
 	 *
 	 * Beware : The file must not have an empty line at the end.
 	 */
-	void addRawTrainingData(std::string filename);
+	void addRawTrainingData(std::string const &filename);
 
 	/**
 	 * Add one set of raw training data to adapt the classifier
 	 * It updates the variables containing the probabilities.
 	 */
-	void addRawTrainingData(RawTrainingData rawTrainingData);
+	void addRawTrainingData(RawTrainingData const &rawTrainingData);
 };
 
 #endif /* BAYESIANCLASSIFIER_H_ */

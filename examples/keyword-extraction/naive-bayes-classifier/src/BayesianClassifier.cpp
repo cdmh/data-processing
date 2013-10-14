@@ -20,7 +20,7 @@
  * Beware : The file must not have an empty line at the end.
  */
 BayesianClassifier::BayesianClassifier(std::string filename,
-		std::vector<Domain> _domains) {
+		std::vector<Domain> const &_domains) {
 	domains = _domains;
 	numberOfColumns = _domains.size();
 	constructClassifier(filename);
@@ -30,7 +30,7 @@ BayesianClassifier::BayesianClassifier(std::string filename,
  * BayesianClassifier constructor. It constructs a classifier with the specified domain.
  * Raw training data are not given, it is possible to add data after the construction.
  */
-BayesianClassifier::BayesianClassifier(std::vector<Domain> _domains) {
+BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains) {
 	domains = _domains;
 	numberOfColumns = _domains.size();
 	calculateProbabilitiesOfInputs();
@@ -44,7 +44,7 @@ BayesianClassifier::BayesianClassifier(std::vector<Domain> _domains) {
  *
  * Beware : The file must not have an empty line at the end.
  */
-void BayesianClassifier::constructClassifier(std::string filename) {
+void BayesianClassifier::constructClassifier(std::string const &filename) {
 	std::ifstream inputFile(filename.c_str());
 
 	while (!inputFile.eof()) {
@@ -72,7 +72,7 @@ void BayesianClassifier::constructClassifier(std::string filename) {
 void BayesianClassifier::calculateProbabilitiesOfInputs() {
 	for (int i = 0; i < numberOfColumns - 1; i++) {
 		for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
-			for (int k = 0; k < getOuputDomain().getNumberOfValues(); k++) {
+			for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
 				calculateProbability(i, j, k);
 			}
 		}
@@ -117,7 +117,7 @@ void BayesianClassifier::calculateProbability(int effectColumn,
  * It saves data into the variable probabilitiesOfOuputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfOutputs() {
-	for (int i = 0; i < getOuputDomain().getNumberOfValues(); i++) {
+	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
 		float count = 0.0;
 		
 		for (unsigned int j = 0; j < data.size(); j++) {
@@ -147,12 +147,12 @@ unsigned long BayesianClassifier::calculateMapKey(int effectColumn,
  * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
  * The output with the highest probability is returned.
  */
-int BayesianClassifier::calculateOutput(std::vector<float> input) {
+int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
 	float highestProbability = outputProbabilityTreshold;
-	int highestOutput = rand() % getOuputDomain().getNumberOfValues();
+	int highestOutput = rand() % getOutputDomain().getNumberOfValues();
 	unsigned long key = 0;
 
-	for (int i = 0; i < getOuputDomain().getNumberOfValues(); i++) {
+	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
 		float probability = probabilitiesOfOutputs[i];
 
 		for (unsigned int j = 0; j < input.size(); j++) {
@@ -173,12 +173,12 @@ int BayesianClassifier::calculateOutput(std::vector<float> input) {
  * Calculate the probability of this output given this input.
  * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
  */
-float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> input, float output) {
+float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const &input, float output) {
 	unsigned long key = 0;
 
 	std::vector<float> probabilities;
 
-	for(int i = 0; i < getOuputDomain().getNumberOfValues(); i++) {
+	for(int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
 		float probability = probabilitiesOfOutputs[i];
 
 		for (unsigned int j = 0; j < input.size(); j++) {
@@ -201,7 +201,7 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> input,
 		alpha = 1.0 / sumOfProbabilities;
 	}
 
-	float probability = probabilities[getOuputDomain().calculateDiscreteValue(output)]*alpha;
+	float probability = probabilities[getOutputDomain().calculateDiscreteValue(output)]*alpha;
 
 	if(probability > 1.0) {
 		return 1.0;
@@ -216,7 +216,7 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> input,
  *
  * Beware : The file must not have an empty line at the end.
  */
-void BayesianClassifier::addRawTrainingData(std::string filename) {
+void BayesianClassifier::addRawTrainingData(std::string const &filename) {
 	std::ifstream inputFile(filename.c_str());
 
 	while (!inputFile.eof()) {
@@ -236,7 +236,7 @@ void BayesianClassifier::addRawTrainingData(std::string filename) {
  * Add one set of raw training data to adapt the classifier
  * It updates the variables containing the probabilities.
  */
-void BayesianClassifier::addRawTrainingData(RawTrainingData rawTrainingData){
+void BayesianClassifier::addRawTrainingData(RawTrainingData const &rawTrainingData){
 	std::vector<int> trainingData = convertRawTrainingData(rawTrainingData);
 
 	updateProbabilities(trainingData);
@@ -249,7 +249,7 @@ void BayesianClassifier::addRawTrainingData(RawTrainingData rawTrainingData){
  * Convert a vector<float> into a vector<int> by discretizing the values
  * using the domain for each column.
  */
-TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData floatVector) {
+TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData const &floatVector) {
 	TrainingData trainingData;
 
 	for(unsigned int i = 0; i < floatVector.size(); i++) {
@@ -279,7 +279,7 @@ void BayesianClassifier::updateOutputProbabilities(int output){
 /**
  * Update the probabilities after adding one set of training data.
  */
-void BayesianClassifier::updateProbabilities(TrainingData trainingData){
+void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
 	//float denominator = probabilitiesOfOutputs[numberOfColumns - 1]*numberOfTrainingData;
 	float denominator = probabilitiesOfOutputs[trainingData[numberOfColumns - 1]]*numberOfTrainingData;
 	
@@ -299,7 +299,7 @@ void BayesianClassifier::updateProbabilities(TrainingData trainingData){
 /**
  * Returns the domain of the output column.
  */
-Domain BayesianClassifier::getOuputDomain() {
+Domain BayesianClassifier::getOutputDomain() {
 	return domains[numberOfColumns - 1];
 }
 

@@ -93,7 +93,7 @@ void BayesianClassifier::calculateProbability(int effectColumn,
 
 	//Calculate the numerator and denominator by scanning the TrainingData
 	for (unsigned int i = 0; i < data.size(); i++) {
-		TrainingData trainingData = data[i];
+		TrainingData const &trainingData = data[i];
 		if (trainingData[numberOfColumns - 1] == causeValue) {
 			denominator++;
 			if (trainingData[effectColumn] == effectValue) {

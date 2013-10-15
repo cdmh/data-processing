@@ -75,7 +75,7 @@ bool const operator==(string_view const &first, char const *second)
     if (len1 != len2)
         return false;
 
-    return (strncmp(first.begin(), second, len1) == 0);
+    return (strncasecmp(first.begin(), second, len1) == 0);
 }
 
 inline

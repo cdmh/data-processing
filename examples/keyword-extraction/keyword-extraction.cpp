@@ -222,7 +222,13 @@ class classifier
 	    std::vector<Domain> domains;
         for (size_t d=0; d<title_words_.size() + body_words_.size(); ++d)
 	        domains.emplace_back(0.0f, 1.0f, 2);  // min, max, number of values
-        domains.emplace_back(0.0f, tag_words_.size()-1, tag_words_.size());
+        
+        if (tag_words_.size() > std::numeric_limits<int>::max())  // ensure a safe cast
+            throw overflow_exception();
+        if (tag_words_.size()-1 > std::numeric_limits<float>::max())  // ensure a safe cast
+            throw overflow_exception();
+
+        domains.emplace_back(0.0f, (float)(tag_words_.size()-1), (int)tag_words_.size());
         classifier_.reset(new BayesianClassifier(domains));
 
         process_rows(
@@ -271,11 +277,11 @@ class classifier
                     outputs.begin(), outputs.end(),
                     std::back_inserter(correct));
 
-                auto expected        = tag_indices.size();
-                auto success         = correct.size();
-                auto missed          = tag_indices.size() - correct.size();
-                auto false_positives = outputs.size() - correct.size();
-                auto rate            = (expected==success) ? 1.0f : float(success) / expected;
+                auto const expected        = tag_indices.size();
+                auto const success         = correct.size();
+                auto const missed          = tag_indices.size() - correct.size();
+                auto const false_positives = outputs.size() - correct.size();
+                auto const rate            = (expected==success) ? 1.0f : float(success) / expected;
                 cumm_success += rate;
 #if WRITE_PROGRESS
                 std::cout << "\nSuccess: " << success << "%\t";
@@ -300,7 +306,7 @@ class classifier
     void process_rows(size_t begin, size_t end, bool training, std::function<void (size_t row, std::vector<float> const &)> fn)
     {
         std::vector<float> data;
-        int columns = title_words_.size() + body_words_.size();
+        auto columns = title_words_.size() + body_words_.size();
         if (training)
             ++columns;
         data.resize(columns);
@@ -388,7 +394,12 @@ class classifier
             {
                 auto it = word_map.find(word);
                 if (it != word_map.end())
-                    fn(std::distance(word_map.begin(), it));
+                {
+                    auto offset = std::distance(word_map.begin(), it);
+                    if (offset > std::numeric_limits<int>::max())  // ensure a safe cast
+                        throw overflow_exception();
+                    fn((int)offset);
+                }
 #if WRITE_PROGRESS
                 else
                     std::cout << "\nUntrained words is ignored: " << word;
@@ -396,6 +407,13 @@ class classifier
             }
         }
     }
+
+    class overflow_exception : std::runtime_error
+    {
+      public:
+        overflow_exception() : std::runtime_error("Overflow exception")
+        { }
+    };
 
   private:
     // Dataset format: id, title, body, tags
@@ -411,7 +429,7 @@ int main(int argc, char const *argv[])
 #if defined(_MSC_VER)  &&  defined(_DEBUG)
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 #endif
-    srand(time(NULL));
+    srand((unsigned)time(NULL));
 
     char const *filename = "\\test-data\\keyword-extraction\\train.csv";
     cdmh::memory_mapped_file<char> const mmf(filename);
@@ -439,7 +457,7 @@ int main(int argc, char const *argv[])
     size_t const training_rows_begin = 1520;
     size_t const training_rows_end   = training_rows_begin + size_t(num_rows * 0.666667);
     size_t const test_rows_begin     = training_rows_end;
-    size_t const test_rows_end       = training_rows_begin + num_rows;
+    size_t const test_rows_end       = std::max(training_rows_begin + num_rows, ds.rows());
 
     // attach to the last of the test rows
     if (!ds.is_attached())
@@ -450,7 +468,10 @@ int main(int argc, char const *argv[])
     std::cout << "\n";
 
     classifier bayesian(ds);
+    std::cout << "\nTraining ...";
     bayesian.train(training_rows_begin, training_rows_end, false);
+
+    std::cout << "\nClassifying ...";
 //    bayesian.classify(training_rows_begin, training_rows_end);      //!!!
     bayesian.classify(test_rows_begin, test_rows_end);
 

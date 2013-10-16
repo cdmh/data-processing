@@ -33,7 +33,7 @@ int Domain::getNumberOfValues() {
 	return numberOfValues;
 }
 
-int Domain::calculateDiscreteValue(float value) {
+int Domain::calculateDiscreteValue(float value) const {
 	float discreteValue;
 	
 	discreteValue = (value - min) / (max - min);

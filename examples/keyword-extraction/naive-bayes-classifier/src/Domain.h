@@ -58,7 +58,7 @@ public:
 	 * Calculate the discrete value from a float using the max, min and number of values
 	 * The minimum discrete value is 0 and maximum is numberOfValues - 1
 	 */
-	int calculateDiscreteValue(float value);
+	int calculateDiscreteValue(float value) const;
 };
 
 #endif /* DOMAIN_H_ */

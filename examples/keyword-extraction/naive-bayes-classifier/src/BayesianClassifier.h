@@ -109,7 +109,7 @@ private:
 	/**
 	 * Calculate the map key for each value in the variable probabilitiesOfInputs
 	 */
-	unsigned long calculateMapKey(int effectColumn, int effectValue, int causeValue);
+	unsigned long calculateMapKey(int effectColumn, int effectValue, int causeValue) const;
 
 	/**
 	 * Update the output probabilities from a new set of raw training data.
@@ -130,7 +130,7 @@ private:
 	/**
 	 * Returns the domain of the output column.
 	 */
-	Domain getOutputDomain();
+	Domain getOutputDomain() const;
 
 public:
 	/**
@@ -153,6 +153,11 @@ public:
 	 * The output with the highest probability is returned.
 	 */
 	int calculateOutput(std::vector<float> const &input);
+
+    /**
+     * calculate all possible outputs
+     */
+    std::vector<std::pair<int, float>> calculatePossibleOutputs(std::vector<float> const &input) const;
 
 	/**
 	 * Calculate the probability of this output given this input.

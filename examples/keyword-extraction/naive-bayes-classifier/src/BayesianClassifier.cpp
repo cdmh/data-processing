@@ -138,7 +138,7 @@ void BayesianClassifier::calculateProbabilitiesOfOutputs() {
  * Calculate the map key for each value in the variable probabilitiesOfInputs
  */
 unsigned long BayesianClassifier::calculateMapKey(int effectColumn,
-		int effectValue, int causeValue) {
+		int effectValue, int causeValue) const {
 	return causeValue * 100000 + effectColumn * 100 + effectValue;
 }
 
@@ -167,6 +167,31 @@ int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
 	}
 
 	return highestOutput;
+}
+
+/**
+ * calculate all possible outputs
+ */
+std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(std::vector<float> const &input) const
+{
+    std::vector<std::pair<int, float>> outputs;
+	unsigned long key = 0;
+
+    float const threshold = 0.0;    //outputProbabilityTreshold;
+	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+		float probability = probabilitiesOfOutputs[i];
+
+		for (unsigned int j = 0; j < input.size(); j++) {
+			key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
+            auto it = probabilitiesOfInputs.find(key);
+			probability *= it->second;
+		}
+
+		if (probability > threshold)
+			outputs.emplace_back(i, probability);
+	}
+
+	return outputs;
 }
 
 /**
@@ -299,7 +324,7 @@ void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
 /**
  * Returns the domain of the output column.
  */
-Domain BayesianClassifier::getOutputDomain() {
+Domain BayesianClassifier::getOutputDomain() const {
 	return domains[numberOfColumns - 1];
 }
 

@@ -24,7 +24,6 @@ class dataset
     bool const attach(It begin, It end, std::uint64_t max_records=0);
     bool const attach(char const *data, std::uint64_t max_records=0);
 
-
     row_data                            operator[](size_t n)               const;
     template<typename U> U              at(size_t row, size_t column)      const;
     cell_value              const      &cell(size_t row, size_t column)    const;
@@ -37,6 +36,7 @@ class dataset
     std::string                         column_title(size_t column)        const;
     void                                erase_column(size_t column);
     template<typename T> std::vector<T> extract_column(size_t column, bool include_nulls=false) const;
+    bool                    const       is_attached()                      const;
     size_t                  const       lookup_column(char const *name)    const;
     row_data                            row(size_t row)                    const;
     size_t                  const       rows()                             const;

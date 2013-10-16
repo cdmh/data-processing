@@ -196,6 +196,10 @@ inline bool const dataset::attach(char const *data, std::uint64_t max_records)
     return attach(data, data+strlen(data), max_records);
 }
 
+inline bool const dataset::is_attached() const
+{
+    return column_info_.size() > 0;
+}
 
 inline void dataset::create_column(unsigned index, string_view const &name, type_mask_t /*type*/)
 {

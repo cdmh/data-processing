@@ -29,7 +29,7 @@ float Domain::getMin() {
 	return min;
 }
 
-int Domain::getNumberOfValues() {
+int Domain::getNumberOfValues() const {
 	return numberOfValues;
 }
 

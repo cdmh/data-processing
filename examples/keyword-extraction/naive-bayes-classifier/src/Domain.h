@@ -52,7 +52,7 @@ public:
 
 	float getMax();
 	float getMin();
-	int getNumberOfValues();
+	int getNumberOfValues() const;
 
 	/**
 	 * Calculate the discrete value from a float using the max, min and number of values

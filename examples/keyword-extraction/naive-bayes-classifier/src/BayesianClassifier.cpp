@@ -20,10 +20,10 @@
  * Beware : The file must not have an empty line at the end.
  */
 BayesianClassifier::BayesianClassifier(std::string filename,
-		std::vector<Domain> const &_domains) {
-	domains = _domains;
-	numberOfColumns = _domains.size();
-	constructClassifier(filename);
+        std::vector<Domain> const &_domains) {
+    domains = _domains;
+    numberOfColumns = _domains.size();
+    constructClassifier(filename);
 }
 
 /**
@@ -31,12 +31,12 @@ BayesianClassifier::BayesianClassifier(std::string filename,
  * Raw training data are not given, it is possible to add data after the construction.
  */
 BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains) {
-	domains = _domains;
-	numberOfColumns = _domains.size();
-	calculateProbabilitiesOfInputs();
-	calculateProbabilitiesOfOutputs();
-	numberOfTrainingData = data.size();
-	data.clear();
+    domains = _domains;
+    numberOfColumns = _domains.size();
+    calculateProbabilitiesOfInputs();
+    calculateProbabilitiesOfOutputs();
+    numberOfTrainingData = data.size();
+    data.clear();
 }
 
 /**
@@ -45,38 +45,41 @@ BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains) {
  * Beware : The file must not have an empty line at the end.
  */
 void BayesianClassifier::constructClassifier(std::string const &filename) {
-	std::ifstream inputFile(filename.c_str());
+    std::ifstream inputFile(filename.c_str());
 
-	while (!inputFile.eof()) {
-		TrainingData trainingData;
-		float value;
-		for (int i = 0; i < numberOfColumns; i++) {
-			inputFile >> value;
-			trainingData.push_back(domains[i].calculateDiscreteValue(value));
-		}
+    while (!inputFile.eof()) {
+        TrainingData trainingData;
+        float value;
+        for (int i = 0; i < numberOfColumns; i++) {
+            inputFile >> value;
+            trainingData.push_back(domains[i].calculateDiscreteValue(value));
+        }
 
-		data.push_back(trainingData);
-	}
+        data.push_back(trainingData);
+    }
 
-	inputFile.close();
+    inputFile.close();
 
-	calculateProbabilitiesOfInputs();
-	calculateProbabilitiesOfOutputs();
-	numberOfTrainingData = data.size();
-	data.clear();
+    calculateProbabilitiesOfInputs();
+    calculateProbabilitiesOfOutputs();
+    numberOfTrainingData = data.size();
+    data.clear();
 }
 
 /**
  * Calculate the probabilities for each possibility of inputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfInputs() {
-	for (int i = 0; i < numberOfColumns - 1; i++) {
-		for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
-			for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
-				calculateProbability(i, j, k);
-			}
-		}
-	}
+    if (data.size() == 0)
+        return;
+
+    for (int i = 0; i < numberOfColumns - 1; i++) {
+        for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
+            for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
+                calculateProbability(i, j, k);
+            }
+        }
+    }
 }
 
 /**
@@ -84,32 +87,32 @@ void BayesianClassifier::calculateProbabilitiesOfInputs() {
  * It saves data into the variable probabilitiesOfInputs.
  */
 void BayesianClassifier::calculateProbability(int effectColumn,
-		int effectValue, int causeValue) {
-	
-	// The numerator is the number of TrainingData with this effectValue given this causeValue
-	float numerator = 0.0;
-	// The denominator is the number of TrainingData with this causeValue
-	float denominator = 0.0;
+        int effectValue, int causeValue) {
+    
+    // The numerator is the number of TrainingData with this effectValue given this causeValue
+    float numerator = 0.0;
+    // The denominator is the number of TrainingData with this causeValue
+    float denominator = 0.0;
 
-	//Calculate the numerator and denominator by scanning the TrainingData
-	for (unsigned int i = 0; i < data.size(); i++) {
-		TrainingData const &trainingData = data[i];
-		if (trainingData[numberOfColumns - 1] == causeValue) {
-			denominator++;
-			if (trainingData[effectColumn] == effectValue) {
-				numerator++;
-			}
-		}
-	}
+    //Calculate the numerator and denominator by scanning the TrainingData
+    for (unsigned int i = 0; i < data.size(); i++) {
+        TrainingData const &trainingData = data[i];
+        if (trainingData[numberOfColumns - 1] == causeValue) {
+            denominator++;
+            if (trainingData[effectColumn] == effectValue) {
+                numerator++;
+            }
+        }
+    }
 
-	float probability = 0.0;
-	
-	if (denominator != 0) {
-		probability = numerator / denominator;
-	}
-	
-	unsigned long key = calculateMapKey(effectColumn, effectValue, causeValue);
-	probabilitiesOfInputs.insert(std::pair<unsigned long, float>(key, probability));
+    float probability = 0.0;
+    
+    if (denominator != 0) {
+        probability = numerator / denominator;
+    }
+    
+    unsigned long key = calculateMapKey(effectColumn, effectValue, causeValue);
+    probabilitiesOfInputs.insert(std::pair<unsigned long, float>(key, probability));
 }
 
 /**
@@ -117,29 +120,30 @@ void BayesianClassifier::calculateProbability(int effectColumn,
  * It saves data into the variable probabilitiesOfOuputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfOutputs() {
-	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
-		float count = 0.0;
-		
-		for (unsigned int j = 0; j < data.size(); j++) {
-			if (data[j][numberOfColumns - 1] == i) {
-				count++;
-			}
-		}
+    probabilitiesOfOutputs.resize(getOutputDomain().getNumberOfValues());
+    if (data.size() == 0)
+        return;
 
-		if (data.size() != 0) {
-			probabilitiesOfOutputs.push_back(count / (float) data.size());
-		} else {
-			probabilitiesOfOutputs.push_back(0);
-		}
-	}
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++)
+    {
+        float count = 0.0;
+        
+        for (unsigned int j = 0; j < data.size(); j++) {
+            if (data[j][numberOfColumns - 1] == i) {
+                count++;
+            }
+        }
+
+        probabilitiesOfOutputs[i] = count / (float) data.size();
+    }
 }
 
 /**
  * Calculate the map key for each value in the variable probabilitiesOfInputs
  */
 unsigned long BayesianClassifier::calculateMapKey(int effectColumn,
-		int effectValue, int causeValue) const {
-	return causeValue * 100000 + effectColumn * 100 + effectValue;
+        int effectValue, int causeValue) const {
+    return causeValue * 100000 + effectColumn * 100 + effectValue;
 }
 
 /**
@@ -148,25 +152,25 @@ unsigned long BayesianClassifier::calculateMapKey(int effectColumn,
  * The output with the highest probability is returned.
  */
 int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
-	float highestProbability = outputProbabilityTreshold;
-	int highestOutput = rand() % getOutputDomain().getNumberOfValues();
-	unsigned long key = 0;
+    float highestProbability = outputProbabilityTreshold;
+    int highestOutput = rand() % getOutputDomain().getNumberOfValues();
+    unsigned long key = 0;
 
-	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
-		float probability = probabilitiesOfOutputs[i];
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+        float probability = probabilitiesOfOutputs[i];
 
-		for (unsigned int j = 0; j < input.size(); j++) {
-			key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
-			probability *= probabilitiesOfInputs[key];
-		}
+        for (unsigned int j = 0; j < input.size(); j++) {
+            key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
+            probability *= probabilitiesOfInputs[key];
+        }
 
-		if (probability > highestProbability) {
-			highestProbability = probability;
-			highestOutput = i;
-		}
-	}
+        if (probability > highestProbability) {
+            highestProbability = probability;
+            highestOutput = i;
+        }
+    }
 
-	return highestOutput;
+    return highestOutput;
 }
 
 /**
@@ -175,23 +179,23 @@ int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
 std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(std::vector<float> const &input) const
 {
     std::vector<std::pair<int, float>> outputs;
-	unsigned long key = 0;
+    unsigned long key = 0;
 
     float const threshold = 0.0;    //outputProbabilityTreshold;
-	for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
-		float probability = probabilitiesOfOutputs[i];
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+        float probability = probabilitiesOfOutputs[i];
 
-		for (unsigned int j = 0; j < input.size(); j++) {
-			key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
+        for (unsigned int j = 0; j < input.size(); j++) {
+            key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
             auto it = probabilitiesOfInputs.find(key);
-			probability *= it->second;
-		}
+            probability *= it->second;
+        }
 
-		if (probability > threshold)
-			outputs.emplace_back(i, probability);
-	}
+        if (probability > threshold)
+            outputs.emplace_back(i, probability);
+    }
 
-	return outputs;
+    return outputs;
 }
 
 /**
@@ -199,40 +203,40 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
  * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
  */
 float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const &input, float output) {
-	unsigned long key = 0;
+    unsigned long key = 0;
 
-	std::vector<float> probabilities;
+    std::vector<float> probabilities;
 
-	for(int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
-		float probability = probabilitiesOfOutputs[i];
+    for(int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+        float probability = probabilitiesOfOutputs[i];
 
-		for (unsigned int j = 0; j < input.size(); j++) {
-			key = calculateMapKey(j,
-					domains[j].calculateDiscreteValue(input[j]), i);
+        for (unsigned int j = 0; j < input.size(); j++) {
+            key = calculateMapKey(j,
+                    domains[j].calculateDiscreteValue(input[j]), i);
 
-			probability *= probabilitiesOfInputs[key];
-		}
-		probabilities.push_back(probability);
-	}
+            probability *= probabilitiesOfInputs[key];
+        }
+        probabilities.push_back(probability);
+    }
 
-	float sumOfProbabilities = 0.0;
-	for(unsigned int i = 0; i < probabilities.size(); i++) {
-		sumOfProbabilities += probabilities[i];
-	}
+    float sumOfProbabilities = 0.0;
+    for(unsigned int i = 0; i < probabilities.size(); i++) {
+        sumOfProbabilities += probabilities[i];
+    }
 
-	float alpha = 0.0;
+    float alpha = 0.0;
 
-	if(sumOfProbabilities > minimumDenominatorValue) {
-		alpha = 1.0 / sumOfProbabilities;
-	}
+    if(sumOfProbabilities > minimumDenominatorValue) {
+        alpha = 1.0 / sumOfProbabilities;
+    }
 
-	float probability = probabilities[getOutputDomain().calculateDiscreteValue(output)]*alpha;
+    float probability = probabilities[getOutputDomain().calculateDiscreteValue(output)]*alpha;
 
-	if(probability > 1.0) {
-		return 1.0;
-	} else {
-		return probability;
-	}
+    if(probability > 1.0) {
+        return 1.0;
+    } else {
+        return probability;
+    }
 }
 
 /**
@@ -242,19 +246,19 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const 
  * Beware : The file must not have an empty line at the end.
  */
 void BayesianClassifier::addRawTrainingData(std::string const &filename) {
-	std::ifstream inputFile(filename.c_str());
+    std::ifstream inputFile(filename.c_str());
 
-	while (!inputFile.eof()) {
-		RawTrainingData rawTrainingData;
-		float value;
-		for (int i = 0; i < numberOfColumns; i++) {
-			inputFile >> value;
-			rawTrainingData.push_back(value);
-		}
-		addRawTrainingData(rawTrainingData);
-	}
+    while (!inputFile.eof()) {
+        RawTrainingData rawTrainingData;
+        float value;
+        for (int i = 0; i < numberOfColumns; i++) {
+            inputFile >> value;
+            rawTrainingData.push_back(value);
+        }
+        addRawTrainingData(rawTrainingData);
+    }
 
-	inputFile.close();
+    inputFile.close();
 }
 
 /**
@@ -262,12 +266,12 @@ void BayesianClassifier::addRawTrainingData(std::string const &filename) {
  * It updates the variables containing the probabilities.
  */
 void BayesianClassifier::addRawTrainingData(RawTrainingData const &rawTrainingData){
-	std::vector<int> trainingData = convertRawTrainingData(rawTrainingData);
+    std::vector<int> trainingData = convertRawTrainingData(rawTrainingData);
 
-	updateProbabilities(trainingData);
-	updateOutputProbabilities(domains[numberOfColumns-1].calculateDiscreteValue(rawTrainingData[numberOfColumns - 1]));
+    updateProbabilities(trainingData);
+    updateOutputProbabilities(domains[numberOfColumns-1].calculateDiscreteValue(rawTrainingData[numberOfColumns - 1]));
 
-	numberOfTrainingData++;
+    numberOfTrainingData++;
 }
 
 /**
@@ -275,56 +279,60 @@ void BayesianClassifier::addRawTrainingData(RawTrainingData const &rawTrainingDa
  * using the domain for each column.
  */
 TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData const &floatVector) {
-	TrainingData trainingData;
+    TrainingData trainingData;
 
-	for(unsigned int i = 0; i < floatVector.size(); i++) {
-		trainingData.push_back(domains[i].calculateDiscreteValue(floatVector[i]));
-	}
+    for(unsigned int i = 0; i < floatVector.size(); i++) {
+        trainingData.push_back(domains[i].calculateDiscreteValue(floatVector[i]));
+    }
 
-	return trainingData;
+    return trainingData;
 }
 
 /**
  * Update the output probabilities from a new set of raw training data.
  */
 void BayesianClassifier::updateOutputProbabilities(int output){
-	float denominator = numberOfTrainingData;
+    float denominator = numberOfTrainingData;
 
-	for (unsigned int i = 0; i < probabilitiesOfOutputs.size(); i++) {
-		float numberOfOutput = probabilitiesOfOutputs[i]*denominator;
+    for (unsigned int i = 0; i < probabilitiesOfOutputs.size(); i++) {
+        float numberOfOutput = probabilitiesOfOutputs[i]*denominator;
 
-		if(i == (unsigned int)output) {
-			numberOfOutput++;
-		}
+        if(i == (unsigned int)output) {
+            numberOfOutput++;
+        }
 
-		probabilitiesOfOutputs[i] = (float) (numberOfOutput/(denominator + 1.0));
-	}
+        probabilitiesOfOutputs[i] = (float) (numberOfOutput/(denominator + 1.0));
+    }
 }
 
 /**
  * Update the probabilities after adding one set of training data.
  */
 void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
-	//float denominator = probabilitiesOfOutputs[numberOfColumns - 1]*numberOfTrainingData;
-	float denominator = probabilitiesOfOutputs[trainingData[numberOfColumns - 1]]*numberOfTrainingData;
-	
-	for(int i = 0; i < numberOfColumns - 1; i++) {
-		for(int j = 0; j < domains[i].getNumberOfValues(); j++) {
-			float numerator = probabilitiesOfInputs[calculateMapKey(i, j, trainingData[numberOfColumns - 1])]*denominator;
+    //float denominator = probabilitiesOfOutputs[numberOfColumns - 1]*numberOfTrainingData;
+    float denominator = probabilitiesOfOutputs[trainingData[numberOfColumns - 1]]*numberOfTrainingData;
+    
+    for(int i = 0; i < numberOfColumns - 1; i++) {
+        for(int j = 0; j < domains[i].getNumberOfValues(); j++) {
+            auto key = calculateMapKey(i, j, trainingData[numberOfColumns - 1]);
+            auto it  = probabilitiesOfInputs.find(key);
+            if (it == probabilitiesOfInputs.end())
+                it = probabilitiesOfInputs.insert(std::make_pair(key, 0.0f)).first;
 
-			if(j == trainingData[i]) {
-				numerator++;
-			}
+            float numerator = probabilitiesOfInputs[key]*denominator;
+            if (j == trainingData[i])
+                numerator++;
 
-			probabilitiesOfInputs[calculateMapKey(i, j, trainingData[numberOfColumns - 1])] = numerator/(denominator + 1.0);
-		}
-	}
+            if (numerator > 0)
+                it->second = numerator / (denominator + 1.0);
+        }
+    }
 }
 
 /**
  * Returns the domain of the output column.
  */
-Domain BayesianClassifier::getOutputDomain() const {
-	return domains[numberOfColumns - 1];
+Domain const &BayesianClassifier::getOutputDomain() const {
+    return domains[numberOfColumns - 1];
 }
 

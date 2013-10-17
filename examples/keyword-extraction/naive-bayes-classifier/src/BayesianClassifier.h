@@ -130,7 +130,7 @@ private:
 	/**
 	 * Returns the domain of the output column.
 	 */
-	Domain getOutputDomain() const;
+	Domain const &getOutputDomain() const;
 
 public:
 	/**

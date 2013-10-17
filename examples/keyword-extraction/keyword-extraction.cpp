@@ -2,6 +2,8 @@
 #include <locale>
 #include <map>
 #include <memory>
+#include <atomic>
+#include <thread>
 #include "../../data-processing.h"
 
 #define WRITE_PROGRESS    0
@@ -202,6 +204,22 @@ OutputIt set_intersection(InputIt1 first1, InputIt1 last1,
 #include "naive-bayes-classifier/src/ActionClassifier.h"
 #include "naive-bayes-classifier/src/Domain.h"
 
+class thread_group : public std::vector<std::thread>
+{
+  public:
+    void join_all()
+    {
+        for (auto &thread : *this)
+        {
+            try {
+                thread.join();
+            }
+            catch (std::exception &) {
+            }
+        }
+    }
+};
+
 /*
   inspired by http://www.inf.ed.ac.uk/teaching/courses/inf2b/learnnotes/inf2b-learn-note07-2up.pdf
 */
@@ -242,16 +260,66 @@ class classifier
 
     void classify(size_t test_rows_begin, size_t test_rows_end)
     {
+        auto cores = std::thread::hardware_concurrency();
+        auto rows  = test_rows_end - test_rows_begin;
+        auto size  = rows / cores;
+        size_t offset = 0;
+
+        thread_group threads;
+
+        std::vector<std::pair<size_t, size_t>> results;
+        results.resize(cores);
+        for (size_t loop=0; loop<cores; ++loop, offset+=size)
+        {
+            auto begin = test_rows_begin + offset;
+            auto end   = begin + size;
+            if (loop == cores-1)
+                end = test_rows_end;
+
+            threads.emplace_back(
+                std::bind(
+                    &classifier::classify_partition,
+                    this,
+                    begin,
+                    end,
+                    std::ref(results[loop])));
+        }
+        threads.join_all();
+
+        size_t cumm_success  = 0;
+        size_t cumm_expected = 0;
+        std::for_each(
+            results.cbegin(),
+            results.cend(),
+            [&cumm_success, &cumm_expected](std::pair<size_t, size_t> const &result) {
+                cumm_expected += result.first;
+                cumm_success  += result.second;
+            });
+
+        std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
+    }
+
+    class overflow_exception : std::runtime_error
+    {
+      public:
+        overflow_exception() : std::runtime_error("Overflow exception")
+        { }
+    };
+
+  private:
+    void classify_partition(size_t test_rows_begin, size_t test_rows_end, std::pair<size_t, size_t> &result)
+    {
 #if CALCULATE_STATS  &&  !WRITE_PROGRESS
                 std::cout << "\nId\tExpected\tSuccess\tMissed\tFalse";
 #endif
 
-        double cumm_success = 0.0;
+        size_t cumm_success  = 0;
+        size_t cumm_expected = 0;
         process_rows(
             test_rows_begin,
             test_rows_end,
             false,
-            [this, &cumm_success](size_t row, std::vector<float> const &data) {
+            [this, &cumm_success, &cumm_expected, test_rows_begin, test_rows_end](size_t row, std::vector<float> const &data) {
                 std::vector<int> tag_indices;
                 process_words(row, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
 
@@ -282,7 +350,8 @@ class classifier
                 auto const missed          = tag_indices.size() - correct.size();
                 auto const false_positives = outputs.size() - correct.size();
                 auto const rate            = (expected==success) ? 1.0f : float(success) / expected;
-                cumm_success += rate;
+                cumm_success += success;
+                cumm_expected += expected;
 #if WRITE_PROGRESS
                 std::cout << "\nSuccess: " << success << "%\t";
                 std::cout << "\nMissed: " << missed << "%\t";
@@ -294,15 +363,17 @@ class classifier
                           << "\t" << std::setw(3) << std::right << missed
                           << "\t" << std::setw(3) << std::right << false_positives
                           << "\t" << std::setw(3) << std::right << (rate * 100);
+                if (cumm_success == 0)
+                    std::cout << "\t0%";
+                else
+                    std::cout << "\t" << ((cumm_success*100)/cumm_expected) << "%";
 #endif
 #endif
             });
 
-        auto rows = test_rows_end - test_rows_begin;
-        std::cout << "\nAccuracy: " << cumm_success*100/rows << "% over " << rows << " rows";
+        result = std::make_pair(cumm_expected, cumm_success);
     }
 
-  private:
     void process_rows(size_t begin, size_t end, bool training, std::function<void (size_t row, std::vector<float> const &)> fn)
     {
         std::vector<float> data;
@@ -408,13 +479,6 @@ class classifier
         }
     }
 
-    class overflow_exception : std::runtime_error
-    {
-      public:
-        overflow_exception() : std::runtime_error("Overflow exception")
-        { }
-    };
-
   private:
     // Dataset format: id, title, body, tags
     cdmh::data_processing::dataset const &ds_;
@@ -442,9 +506,9 @@ int main(int argc, char const *argv[])
     std::cout << "Loading file ...";
     cdmh::data_processing::dataset ds;
 #ifdef NDEBUG
-    size_t num_rows = 3999;
+    size_t num_rows = 2500;
 #else
-    size_t num_rows = 1000;
+    size_t num_rows = 100;
 #endif
 
     if (num_rows == 0)
@@ -454,7 +518,7 @@ int main(int argc, char const *argv[])
     }
 
     // use two thirds for training and a third for testing
-    size_t const training_rows_begin = 1520;
+    size_t const training_rows_begin = 0;
     size_t const training_rows_end   = training_rows_begin + size_t(num_rows * 0.666667);
     size_t const test_rows_begin     = training_rows_end;
     size_t const test_rows_end       = std::max(training_rows_begin + num_rows, ds.rows());

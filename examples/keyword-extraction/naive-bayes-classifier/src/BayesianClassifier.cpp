@@ -185,7 +185,7 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
     for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
         float probability = probabilitiesOfOutputs[i];
 
-        for (unsigned int j = 0; j < input.size(); j++) {
+        for (unsigned int j = 0; j < input.size()  &&  probability > threshold; j++) {
             key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
             auto it = probabilitiesOfInputs.find(key);
             probability *= it->second;

@@ -299,7 +299,7 @@ class classifier
         std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
     }
 
-    class overflow_exception : std::runtime_error
+    class overflow_exception : public std::runtime_error
     {
       public:
         overflow_exception() : std::runtime_error("Overflow exception")
@@ -488,7 +488,7 @@ class classifier
     std::map<string_view, std::uint64_t>  body_words_;
 };
 
-int main(int argc, char const *argv[])
+int main()
 {
 #if defined(_MSC_VER)  &&  defined(_DEBUG)
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
@@ -520,8 +520,8 @@ int main(int argc, char const *argv[])
     // use two thirds for training and a third for testing
     size_t const training_rows_begin = 0;
     size_t const training_rows_end   = training_rows_begin + size_t(num_rows * 0.666667);
-    size_t const test_rows_begin     = training_rows_end;
-    size_t const test_rows_end       = std::max(training_rows_begin + num_rows, ds.rows());
+    size_t const test_rows_begin     = training_rows_begin; // training_rows_end;
+    size_t const test_rows_end       = training_rows_end; // std::max(training_rows_begin + num_rows, ds.rows());
 
     // attach to the last of the test rows
     if (!ds.is_attached())
@@ -536,7 +536,6 @@ int main(int argc, char const *argv[])
     bayesian.train(training_rows_begin, training_rows_end, false);
 
     std::cout << "\nClassifying ...";
-//    bayesian.classify(training_rows_begin, training_rows_end);      //!!!
     bayesian.classify(test_rows_begin, test_rows_end);
 
     std::cout << "\n";

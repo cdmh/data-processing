@@ -5,14 +5,80 @@
  *      Author: Simon Lavigne-Giroux
  */
 
-#ifndef BAYESIANCLASSIFIER_H_
-#define BAYESIANCLASSIFIER_H_
+#pragma once
 
-#include "Domain.h"
+#define USE_VECTOR_MAP 1
 
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <functional>
+#if USE_VECTOR_MAP
+#include <cassert>
+#else
 #include <map>
+#endif
+
+#include "Domain.h"
+
+template<typename T, typename A=std::allocator<T>>
+class vector_map : public std::vector<T, A>
+{
+  public:
+#ifndef NDEBUG
+    template<class... V>
+    void emplace_back(V &&... values)
+    {
+        vector::emplace_back(std::forward<V>(values)...);
+        assert(size() < 2  ||  less(*(rbegin()+1), *rbegin()));
+    }
+#endif
+
+    typename T::second_type &operator[](typename T::first_type key)
+    {
+        return finder(key)->second;
+    }
+
+    iterator find(typename T::first_type key) const
+    {
+        return const_cast<vector_map *>(this)->finder(key);
+    }
+
+    bool const is_sorted() const
+    {
+        return std::is_sorted(
+            begin(),
+            end(),
+            std::bind(&vector_map::less, this, std::placeholders::_1, std::placeholders::_2));
+    }
+
+  protected:
+    template<class... V>
+    iterator emplace(const_iterator, V &&...);
+
+    template<typename InputIterator>
+    void     insert(iterator, InputIterator, InputIterator);
+    iterator insert(iterator, value_type const &);
+    void     insert(iterator, size_type, value_type const &);
+
+	void push_back(value_type &&);
+	void push_back(const value_type &);
+
+    iterator finder(typename T::first_type const &key)
+    {
+        auto it  = begin();
+        auto ite = end();
+        it = std::lower_bound(it, ite, key, [](T const &lhs, typename T::first_type const &rhs) {return lhs.first < rhs;});
+        if (it != ite  &&  !(key < it->first))
+            return it;
+        return end();
+    }
+
+    bool const less(T const &lhs, T const &rhs) const
+    {
+        return lhs.first < rhs.first;
+    }
+};
 
 /**
  * TrainingData contains discretized values.
@@ -54,7 +120,7 @@ private:
 	/**
 	 * Number of columns in the training data.
 	 */
-	int numberOfColumns;
+	size_t numberOfColumns;
 	
 	/**
 	 * Domains for each column of the training data
@@ -69,7 +135,7 @@ private:
 	/**
 	 * The number of training data set.
 	 */
-	int numberOfTrainingData;
+	size_t numberOfTrainingData;
 	
 	/**
 	 * Probabilities of each ouput -> P(Ouput).
@@ -79,7 +145,11 @@ private:
 	/**
 	 * Probabilities of each input -> P(effectColum:effectValue | lastColumn:causeValue).
 	 */
-	std::map<unsigned long, float> probabilitiesOfInputs;
+#if USE_VECTOR_MAP
+    vector_map<std::pair<unsigned long const, float>> probabilitiesOfInputs;
+#else
+    std::map<unsigned long const, float> probabilitiesOfInputs;
+#endif
 
 	/**
 	 * Construct the classifier from the RawTrainingData in the file.
@@ -179,5 +249,3 @@ public:
 	 */
 	void addRawTrainingData(RawTrainingData const &rawTrainingData);
 };
-
-#endif /* BAYESIANCLASSIFIER_H_ */

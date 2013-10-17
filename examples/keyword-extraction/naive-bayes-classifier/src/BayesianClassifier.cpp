@@ -9,7 +9,7 @@
 #include <fstream>
 
 // The threshold to get to select whether an output is valid
-#define outputProbabilityTreshold 0.003
+#define outputProbabilityTreshold 0.003f
 // There is a minimum denominator value to remove the possibility of INF and NaN
 #define minimumDenominatorValue 0.0000000001
 
@@ -70,16 +70,16 @@ void BayesianClassifier::constructClassifier(std::string const &filename) {
  * Calculate the probabilities for each possibility of inputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfInputs() {
-    if (data.size() == 0)
-        return;
-
-    for (int i = 0; i < numberOfColumns - 1; i++) {
-        for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
-            for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
+    for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
+        for (int i = 0; i < numberOfColumns - 1; i++) {
+            for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
                 calculateProbability(i, j, k);
             }
         }
     }
+#if USE_VECTOR_MAP
+    assert(probabilitiesOfInputs.is_sorted());
+#endif
 }
 
 /**
@@ -112,7 +112,11 @@ void BayesianClassifier::calculateProbability(int effectColumn,
     }
     
     unsigned long key = calculateMapKey(effectColumn, effectValue, causeValue);
-    probabilitiesOfInputs.insert(std::pair<unsigned long, float>(key, probability));
+#if USE_VECTOR_MAP
+    probabilitiesOfInputs.emplace_back(key, probability);
+#else
+    probabilitiesOfInputs[key] = probability;
+#endif
 }
 
 /**
@@ -181,7 +185,7 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
     std::vector<std::pair<int, float>> outputs;
     unsigned long key = 0;
 
-    float const threshold = 0.0;    //outputProbabilityTreshold;
+    float const threshold = outputProbabilityTreshold;
     for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
         float probability = probabilitiesOfOutputs[i];
 
@@ -227,13 +231,13 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const 
     float alpha = 0.0;
 
     if(sumOfProbabilities > minimumDenominatorValue) {
-        alpha = 1.0 / sumOfProbabilities;
+        alpha = 1.0f / sumOfProbabilities;
     }
 
     float probability = probabilities[getOutputDomain().calculateDiscreteValue(output)]*alpha;
 
-    if(probability > 1.0) {
-        return 1.0;
+    if(probability > 1.0f) {
+        return 1.0f;
     } else {
         return probability;
     }
@@ -292,16 +296,16 @@ TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData const &f
  * Update the output probabilities from a new set of raw training data.
  */
 void BayesianClassifier::updateOutputProbabilities(int output){
-    float denominator = numberOfTrainingData;
+    float denominator = float(numberOfTrainingData);
 
     for (unsigned int i = 0; i < probabilitiesOfOutputs.size(); i++) {
-        float numberOfOutput = probabilitiesOfOutputs[i]*denominator;
+        float numberOfOutput = probabilitiesOfOutputs[i] * denominator;
 
         if(i == (unsigned int)output) {
             numberOfOutput++;
         }
 
-        probabilitiesOfOutputs[i] = (float) (numberOfOutput/(denominator + 1.0));
+        probabilitiesOfOutputs[i] = float(numberOfOutput / (denominator + 1.0));
     }
 }
 
@@ -317,14 +321,21 @@ void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
             auto key = calculateMapKey(i, j, trainingData[numberOfColumns - 1]);
             auto it  = probabilitiesOfInputs.find(key);
             if (it == probabilitiesOfInputs.end())
+            {
+#if USE_VECTOR_MAP
+                probabilitiesOfInputs.emplace_back(key, 0.0f);
+                it = probabilitiesOfInputs.end() - 1;
+#else
                 it = probabilitiesOfInputs.insert(std::make_pair(key, 0.0f)).first;
+#endif
+            }
 
-            float numerator = probabilitiesOfInputs[key]*denominator;
+            float numerator = it->second * denominator;
             if (j == trainingData[i])
                 numerator++;
 
             if (numerator > 0)
-                it->second = numerator / (denominator + 1.0);
+                it->second = numerator / (denominator + 1.0f);
         }
     }
 }

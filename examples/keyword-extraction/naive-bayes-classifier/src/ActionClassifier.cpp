@@ -8,7 +8,7 @@
 #include "ActionClassifier.h"
 #include <fstream>
 
-#define probabilityTreshold 0.01
+#define probabilityTreshold 0.01f
 
 /**
  * Constructor creating Naive Bayes Classifier for each action type.

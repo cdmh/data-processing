@@ -312,23 +312,30 @@ void BayesianClassifier::updateOutputProbabilities(int output){
 /**
  * Update the probabilities after adding one set of training data.
  */
+#include <iostream>
 void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
     //float denominator = probabilitiesOfOutputs[numberOfColumns - 1]*numberOfTrainingData;
     float denominator = probabilitiesOfOutputs[trainingData[numberOfColumns - 1]]*numberOfTrainingData;
-    
+
+#if USE_VECTOR_MAP
+    size_t count = 0;
+    for(int i = 0; i < numberOfColumns - 1; i++) {
+        for(int j = 0; j < domains[i].getNumberOfValues(); j++)
+            ++count;
+    }
+
+    auto key = calculateMapKey(0, 0, trainingData[numberOfColumns - 1]);
+    auto it  = probabilitiesOfInputs.find(key);
+#endif
     for(int i = 0; i < numberOfColumns - 1; i++) {
         for(int j = 0; j < domains[i].getNumberOfValues(); j++) {
+#if !USE_VECTOR_MAP
             auto key = calculateMapKey(i, j, trainingData[numberOfColumns - 1]);
             auto it  = probabilitiesOfInputs.find(key);
             if (it == probabilitiesOfInputs.end())
-            {
-#if USE_VECTOR_MAP
-                probabilitiesOfInputs.emplace_back(key, 0.0f);
-                it = probabilitiesOfInputs.end() - 1;
-#else
                 it = probabilitiesOfInputs.insert(std::make_pair(key, 0.0f)).first;
 #endif
-            }
+            assert(it != probabilitiesOfInputs.end());
 
             float numerator = it->second * denominator;
             if (j == trainingData[i])
@@ -336,6 +343,9 @@ void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
 
             if (numerator > 0)
                 it->second = numerator / (denominator + 1.0f);
+#if USE_VECTOR_MAP
+            ++it;
+#endif
         }
     }
 }

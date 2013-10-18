@@ -13,9 +13,8 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-#if USE_VECTOR_MAP
 #include <cassert>
-#else
+#if !USE_VECTOR_MAP
 #include <map>
 #endif
 

@@ -21,6 +21,15 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="naive-bayes-classifier\src\Domain.h">
+      <Filter>Source Files\bayesian_classifier</Filter>
+    </ClInclude>
+    <ClInclude Include="naive-bayes-classifier\src\ActionClassifier.h">
+      <Filter>Source Files\bayesian_classifier</Filter>
+    </ClInclude>
+    <ClInclude Include="naive-bayes-classifier\src\BayesianClassifier.h">
+      <Filter>Source Files\bayesian_classifier</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

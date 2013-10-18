@@ -149,6 +149,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="naive-bayes-classifier\src\ActionClassifier.h" />
+    <ClInclude Include="naive-bayes-classifier\src\BayesianClassifier.h" />
+    <ClInclude Include="naive-bayes-classifier\src\Domain.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

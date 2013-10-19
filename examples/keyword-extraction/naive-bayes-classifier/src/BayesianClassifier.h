@@ -161,6 +161,7 @@ private:
 	 * Calculate the probabilities for each possibility of inputs.
 	 */
 	void calculateProbabilitiesOfInputs();
+	void calculateProbabilitiesOfInputsWithoutData();
 
 	/**
 	 * Calculate the probability of P(effectColum:effectValue | lastColumn:causeValue)

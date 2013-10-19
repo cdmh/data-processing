@@ -70,16 +70,37 @@ void BayesianClassifier::constructClassifier(std::string const &filename) {
  * Calculate the probabilities for each possibility of inputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfInputs() {
-    for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
-        for (int i = 0; i < numberOfColumns - 1; i++) {
-            for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
-                calculateProbability(i, j, k);
+    if (data.size() == 0)
+        calculateProbabilitiesOfInputsWithoutData();
+    else
+    {
+        for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
+            for (int i = 0; i < numberOfColumns - 1; i++) {
+                for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
+                    calculateProbability(i, j, k);
+                }
             }
         }
     }
+
 #if USE_VECTOR_MAP
     assert(probabilitiesOfInputs.is_sorted());
 #endif
+}
+
+void BayesianClassifier::calculateProbabilitiesOfInputsWithoutData() {
+    for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
+        for (int i = 0; i < numberOfColumns - 1; i++) {
+            for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
+                unsigned long key = calculateMapKey(i, j, k);
+#if USE_VECTOR_MAP
+                probabilitiesOfInputs.emplace_back(key, 0.0f);
+#else
+                probabilitiesOfInputs[key] = 0.0f;
+#endif
+            }
+        }
+    }
 }
 
 /**

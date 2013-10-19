@@ -206,14 +206,23 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
     std::vector<std::pair<int, float>> outputs;
     unsigned long key = 0;
 
+    size_t key_offset = 0;
+    for(int i = 0; i < numberOfColumns - 1; i++) {
+        for(int j = 0; j < domains[i].getNumberOfValues(); j++)
+            ++key_offset;
+    }
+
     float const threshold = outputProbabilityTreshold;
     for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
         float probability = probabilitiesOfOutputs[i];
 
-        for (unsigned int j = 0; j < input.size()  &&  probability > threshold; j++) {
-            key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
-            auto it = probabilitiesOfInputs.find(key);
-            probability *= it->second;
+        auto key_it = probabilitiesOfInputs.cbegin() + i * key_offset;
+        for (unsigned int j = 0; j < input.size()  &&  probability > threshold; j++, key_it += domains[i].getNumberOfValues()) {
+            // if this assert fails, then the key_it is not finding the correct key, ie the
+            // same key as would be returned by calling
+            //     probabilitiesOfInputs.find(calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i));
+            assert((key_it + domains[j].calculateDiscreteValue(input[j]))->first == calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i));
+            probability *= (key_it + domains[j].calculateDiscreteValue(input[j]))->second;
         }
 
         if (probability > threshold)
@@ -333,18 +342,10 @@ void BayesianClassifier::updateOutputProbabilities(int output){
 /**
  * Update the probabilities after adding one set of training data.
  */
-#include <iostream>
 void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
-    //float denominator = probabilitiesOfOutputs[numberOfColumns - 1]*numberOfTrainingData;
     float denominator = probabilitiesOfOutputs[trainingData[numberOfColumns - 1]]*numberOfTrainingData;
 
 #if USE_VECTOR_MAP
-    size_t count = 0;
-    for(int i = 0; i < numberOfColumns - 1; i++) {
-        for(int j = 0; j < domains[i].getNumberOfValues(); j++)
-            ++count;
-    }
-
     auto key = calculateMapKey(0, 0, trainingData[numberOfColumns - 1]);
     auto it  = probabilitiesOfInputs.find(key);
 #endif

@@ -9,7 +9,11 @@
 #define WRITE_PROGRESS    0
 #define PROFILING         1
 #define CALCULATE_STATS   1
-
+#ifdef NDEBUG
+#define THREADED          1
+#else
+#define THREADED          0
+#endif
 
 namespace {     // anonymous namespace
 
@@ -277,6 +281,7 @@ class classifier
             if (loop == cores-1)
                 end = test_rows_end;
 
+#if THREADED
             threads.emplace_back(
                 std::bind(
                     &classifier::classify_partition,
@@ -284,6 +289,9 @@ class classifier
                     begin,
                     end,
                     std::ref(results[loop])));
+#else
+            classify_partition(begin, end, results[loop]);
+#endif
         }
         threads.join_all();
 
@@ -297,9 +305,7 @@ class classifier
                 cumm_success  += result.second;
             });
 
-#if !PROFILING
         std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
-#endif
     }
 
     class overflow_exception : public std::runtime_error
@@ -524,7 +530,7 @@ int main()
     size_t const training_rows_begin = 0;
     size_t const training_rows_end   = training_rows_begin + size_t(num_rows * 0.666667);
     size_t const test_rows_begin     = training_rows_begin; // training_rows_end;
-    size_t const test_rows_end       = training_rows_end; // std::max(training_rows_begin + num_rows, ds.rows());
+    size_t const test_rows_end       = training_rows_end;   // std::max(training_rows_begin + num_rows, ds.rows());
 
     // attach to the last of the test rows
     if (!ds.is_attached())

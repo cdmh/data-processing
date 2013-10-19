@@ -17,11 +17,31 @@
 
 #include "data_processing.detail.h"
 
+namespace cdmh {
+
 #if WIN32 && !defined(strncasecmp)
-#define strncasecmp _strnicmp
+inline int __cdecl strncasecmp(const char * first, const char * last, size_t count)
+{
+    if (!count)
+        return 0;
+
+    int f = 0;
+    int l = 0;
+
+    do
+    {
+        if (((f = *(first++)) >= 'A')  &&  (f <= 'Z'))
+            f -= 'A' - 'a';
+
+        if (((l = *(last++)) >= 'A')  &&  (l <= 'Z'))
+            l -= 'A' - 'a';
+    }
+    while (--count  &&  f  &&  (f == l));
+
+    return (f - l);
+}
 #endif
 
-namespace cdmh {
 namespace data_processing {
 
 template<typename T, typename U>

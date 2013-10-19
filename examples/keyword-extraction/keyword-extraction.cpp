@@ -7,6 +7,7 @@
 #include "../../data-processing.h"
 
 #define WRITE_PROGRESS    0
+#define PROFILING         1
 #define CALCULATE_STATS   1
 
 
@@ -296,7 +297,9 @@ class classifier
                 cumm_success  += result.second;
             });
 
+#if !PROFILING
         std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
+#endif
     }
 
     class overflow_exception : public std::runtime_error
@@ -309,7 +312,7 @@ class classifier
   private:
     void classify_partition(size_t test_rows_begin, size_t test_rows_end, std::pair<size_t, size_t> &result)
     {
-#if CALCULATE_STATS  &&  !WRITE_PROGRESS
+#if CALCULATE_STATS  &&  !WRITE_PROGRESS  &&  !PROFILING
                 std::cout << "\nId\tExpected\tSuccess\tMissed\tFalse";
 #endif
 
@@ -356,7 +359,7 @@ class classifier
                 std::cout << "\nSuccess: " << success << "%\t";
                 std::cout << "\nMissed: " << missed << "%\t";
                 std::cout << "\nFalse: " << false_positives << "%\t";
-#else
+#elif !PROFILING
                 std::cout << "\n" << ds_[row]["id"].get<string_view>()
                           << "\t" << std::setw(3) << std::right << expected
                           << "\t" << std::setw(3) << std::right << success
@@ -506,7 +509,7 @@ int main()
     std::cout << "Loading file ...";
     cdmh::data_processing::dataset ds;
 #ifdef NDEBUG
-    size_t num_rows = 2500;
+    size_t num_rows = 10000;
 #else
     size_t num_rows = 100;
 #endif

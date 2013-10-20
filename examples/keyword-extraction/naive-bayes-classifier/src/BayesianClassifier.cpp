@@ -8,6 +8,12 @@
 #include "BayesianClassifier.h"
 #include <fstream>
 
+#define WRITE_PROGRESS    1
+
+#if WRITE_PROGRESS
+#include <iostream>
+#endif
+
 // The threshold to get to select whether an output is valid
 #define outputProbabilityTreshold 0.003f
 // There is a minimum denominator value to remove the possibility of INF and NaN
@@ -19,8 +25,9 @@
  *
  * Beware : The file must not have an empty line at the end.
  */
-BayesianClassifier::BayesianClassifier(std::string filename,
-        std::vector<Domain> const &_domains) {
+BayesianClassifier::BayesianClassifier(std::string filename, std::vector<Domain> const &_domains)
+  : max_number_of_domain_values(0)
+{
     domains = _domains;
     numberOfColumns = _domains.size();
     constructClassifier(filename);
@@ -30,7 +37,9 @@ BayesianClassifier::BayesianClassifier(std::string filename,
  * BayesianClassifier constructor. It constructs a classifier with the specified domain.
  * Raw training data are not given, it is possible to add data after the construction.
  */
-BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains) {
+BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains)
+  : max_number_of_domain_values(0)
+{
     domains = _domains;
     numberOfColumns = _domains.size();
     calculateProbabilitiesOfInputs();
@@ -44,13 +53,14 @@ BayesianClassifier::BayesianClassifier(std::vector<Domain> const &_domains) {
  *
  * Beware : The file must not have an empty line at the end.
  */
-void BayesianClassifier::constructClassifier(std::string const &filename) {
+void BayesianClassifier::constructClassifier(std::string const &filename)
+{
     std::ifstream inputFile(filename.c_str());
 
     while (!inputFile.eof()) {
         TrainingData trainingData;
         float value;
-        for (int i = 0; i < numberOfColumns; i++) {
+        for (int i = 0; i < numberOfColumns; ++i) {
             inputFile >> value;
             trainingData.push_back(domains[i].calculateDiscreteValue(value));
         }
@@ -70,28 +80,50 @@ void BayesianClassifier::constructClassifier(std::string const &filename) {
  * Calculate the probabilities for each possibility of inputs.
  */
 void BayesianClassifier::calculateProbabilitiesOfInputs() {
+    // pre-allocate the vector for the input probabilities
+    size_t count = 0;
+    for (int i = 0; i < numberOfColumns - 1; ++i)
+    {
+        max_number_of_domain_values = std::max(max_number_of_domain_values, domains[i].getNumberOfValues());
+        for (int j = 0; j < domains[i].getNumberOfValues(); ++j)
+            ++count;
+    }
+#if WRITE_PROGRESS
+    std::cout.imbue(std::locale(""));
+    std::cout << "\nInput probability array is "
+              << (count * getOutputDomain().getNumberOfValues() * sizeof(std::pair<unsigned long const, float>))/1024
+              << " Kb"
+              << std::flush;
+#endif
+    probabilitiesOfInputs.reserve(count * getOutputDomain().getNumberOfValues());
+
+    // if we don't have any initialization data, then there is
+    // no calculation of the initial probabilities, and we can
+    // populate the vector much more quickly
     if (data.size() == 0)
         calculateProbabilitiesOfInputsWithoutData();
     else
     {
-        for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
-            for (int i = 0; i < numberOfColumns - 1; i++) {
-                for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
+        for (int k = 0; k < getOutputDomain().getNumberOfValues(); ++k)
+            for (int i = 0; i < numberOfColumns - 1; ++i)
+                for (int j = 0; j < domains[i].getNumberOfValues(); ++j)
                     calculateProbability(i, j, k);
-                }
-            }
-        }
     }
 
 #if USE_VECTOR_MAP
     assert(probabilitiesOfInputs.is_sorted());
+    assert(probabilitiesOfInputs.size() == probabilitiesOfInputs.capacity());
 #endif
 }
 
-void BayesianClassifier::calculateProbabilitiesOfInputsWithoutData() {
-    for (int k = 0; k < getOutputDomain().getNumberOfValues(); k++) {
-        for (int i = 0; i < numberOfColumns - 1; i++) {
-            for (int j = 0; j < domains[i].getNumberOfValues(); j++) {
+void BayesianClassifier::calculateProbabilitiesOfInputsWithoutData()
+{
+    for (int k = 0; k < getOutputDomain().getNumberOfValues(); ++k)
+    {
+        for (int i = 0; i < numberOfColumns - 1; ++i)
+        {
+            for (int j = 0; j < domains[i].getNumberOfValues(); ++j)
+            {
                 unsigned long key = calculateMapKey(i, j, k);
 #if USE_VECTOR_MAP
                 probabilitiesOfInputs.emplace_back(key, 0.0f);
@@ -116,7 +148,7 @@ void BayesianClassifier::calculateProbability(int effectColumn,
     float denominator = 0.0;
 
     //Calculate the numerator and denominator by scanning the TrainingData
-    for (unsigned int i = 0; i < data.size(); i++) {
+    for (unsigned int i = 0; i < data.size(); ++i) {
         TrainingData const &trainingData = data[i];
         if (trainingData[numberOfColumns - 1] == causeValue) {
             denominator++;
@@ -149,11 +181,11 @@ void BayesianClassifier::calculateProbabilitiesOfOutputs() {
     if (data.size() == 0)
         return;
 
-    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++)
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); ++i)
     {
         float count = 0.0;
         
-        for (unsigned int j = 0; j < data.size(); j++) {
+        for (unsigned int j = 0; j < data.size(); ++j) {
             if (data[j][numberOfColumns - 1] == i) {
                 count++;
             }
@@ -166,9 +198,18 @@ void BayesianClassifier::calculateProbabilitiesOfOutputs() {
 /**
  * Calculate the map key for each value in the variable probabilitiesOfInputs
  */
-unsigned long BayesianClassifier::calculateMapKey(int effectColumn,
-        int effectValue, int causeValue) const {
-    return causeValue * 100000 + effectColumn * 100 + effectValue;
+unsigned long BayesianClassifier::calculateMapKey(int effectColumn, int effectValue, int causeValue) const
+{
+    if (max_number_of_domain_values == 0)
+        throw std::logic_error("BayesianClassifier::calculateMapKey called before initialisation of max_number_of_domain_values");
+
+    size_t effect_column = effectColumn;  effect_column *= max_number_of_domain_values;
+    size_t cause_value = causeValue;      cause_value   *= (numberOfColumns - 1) * max_number_of_domain_values;
+
+    // assert our cast is valid
+    if (causeValue * 100000UL + effectColumn * 100 + effectValue > (size_t)std::numeric_limits<unsigned long>::max())
+        throw overflow_exception();
+    return (unsigned long)(effect_column + effectValue + cause_value);
 }
 
 /**
@@ -181,10 +222,10 @@ int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
     int highestOutput = rand() % getOutputDomain().getNumberOfValues();
     unsigned long key = 0;
 
-    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); ++i) {
         float probability = probabilitiesOfOutputs[i];
 
-        for (unsigned int j = 0; j < input.size(); j++) {
+        for (unsigned int j = 0; j < input.size(); ++j) {
             key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
             probability *= probabilitiesOfInputs[key];
         }
@@ -204,16 +245,15 @@ int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
 std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(std::vector<float> const &input) const
 {
     std::vector<std::pair<int, float>> outputs;
-    unsigned long key = 0;
 
     size_t key_offset = 0;
-    for(int i = 0; i < numberOfColumns - 1; i++) {
-        for(int j = 0; j < domains[i].getNumberOfValues(); j++)
+    for(int i = 0; i < numberOfColumns - 1; ++i) {
+        for(int j = 0; j < domains[i].getNumberOfValues(); ++j)
             ++key_offset;
     }
 
     float const threshold = outputProbabilityTreshold;
-    for (int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+    for (int i = 0; i < getOutputDomain().getNumberOfValues(); ++i) {
         float probability = probabilitiesOfOutputs[i];
 
         auto key_it = probabilitiesOfInputs.cbegin() + i * key_offset;
@@ -241,12 +281,11 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const 
 
     std::vector<float> probabilities;
 
-    for(int i = 0; i < getOutputDomain().getNumberOfValues(); i++) {
+    for(int i = 0; i < getOutputDomain().getNumberOfValues(); ++i) {
         float probability = probabilitiesOfOutputs[i];
 
-        for (unsigned int j = 0; j < input.size(); j++) {
-            key = calculateMapKey(j,
-                    domains[j].calculateDiscreteValue(input[j]), i);
+        for (unsigned int j = 0; j < input.size(); ++j) {
+            key = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
 
             probability *= probabilitiesOfInputs[key];
         }
@@ -254,7 +293,7 @@ float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const 
     }
 
     float sumOfProbabilities = 0.0;
-    for(unsigned int i = 0; i < probabilities.size(); i++) {
+    for(unsigned int i = 0; i < probabilities.size(); ++i) {
         sumOfProbabilities += probabilities[i];
     }
 
@@ -285,7 +324,7 @@ void BayesianClassifier::addRawTrainingData(std::string const &filename) {
     while (!inputFile.eof()) {
         RawTrainingData rawTrainingData;
         float value;
-        for (int i = 0; i < numberOfColumns; i++) {
+        for (int i = 0; i < numberOfColumns; ++i) {
             inputFile >> value;
             rawTrainingData.push_back(value);
         }
@@ -315,7 +354,8 @@ void BayesianClassifier::addRawTrainingData(RawTrainingData const &rawTrainingDa
 TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData const &floatVector) {
     TrainingData trainingData;
 
-    for(unsigned int i = 0; i < floatVector.size(); i++) {
+    trainingData.reserve(floatVector.size());
+    for(unsigned int i = 0; i < floatVector.size(); ++i) {
         trainingData.push_back(domains[i].calculateDiscreteValue(floatVector[i]));
     }
 
@@ -328,7 +368,7 @@ TrainingData BayesianClassifier::convertRawTrainingData(RawTrainingData const &f
 void BayesianClassifier::updateOutputProbabilities(int output){
     float denominator = float(numberOfTrainingData);
 
-    for (unsigned int i = 0; i < probabilitiesOfOutputs.size(); i++) {
+    for (unsigned int i = 0; i < probabilitiesOfOutputs.size(); ++i) {
         float numberOfOutput = probabilitiesOfOutputs[i] * denominator;
 
         if(i == (unsigned int)output) {
@@ -349,8 +389,8 @@ void BayesianClassifier::updateProbabilities(TrainingData const &trainingData){
     auto key = calculateMapKey(0, 0, trainingData[numberOfColumns - 1]);
     auto it  = probabilitiesOfInputs.find(key);
 #endif
-    for(int i = 0; i < numberOfColumns - 1; i++) {
-        for(int j = 0; j < domains[i].getNumberOfValues(); j++) {
+    for(int i = 0; i < numberOfColumns - 1; ++i) {
+        for(int j = 0; j < domains[i].getNumberOfValues(); ++j) {
 #if !USE_VECTOR_MAP
             auto key = calculateMapKey(i, j, trainingData[numberOfColumns - 1]);
             auto it  = probabilitiesOfInputs.find(key);

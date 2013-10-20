@@ -20,18 +20,31 @@
 
 #include "Domain.h"
 
+class invalid_key_sequence : public std::runtime_error
+{
+  public:
+    invalid_key_sequence() : std::runtime_error("Key sequence is not sequentially incremental")
+    { }
+};
+
+class overflow_exception : public std::runtime_error
+{
+    public:
+    overflow_exception() : std::runtime_error("Overflow exception")
+    { }
+};
+
 template<typename T, typename A=std::allocator<T>>
 class vector_map : public std::vector<T, A>
 {
   public:
-#ifndef NDEBUG
     template<class... V>
     void emplace_back(V &&... values)
     {
         vector::emplace_back(std::forward<V>(values)...);
-        assert(size() < 2  ||  less(*(rbegin()+1), *rbegin()));
+        if (size() > 2  &&  !less(*(rbegin()+1), *rbegin()))
+            throw invalid_key_sequence();
     }
-#endif
 
     typename T::second_type &operator[](typename T::first_type key)
     {
@@ -121,6 +134,9 @@ private:
 	 */
 	size_t numberOfColumns;
 	
+    // maximum number of values in any domain
+    int max_number_of_domain_values;
+
 	/**
 	 * Domains for each column of the training data
 	 */

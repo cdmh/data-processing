@@ -6,7 +6,8 @@
 #include <thread>
 #include "../../data-processing.h"
 
-#define WRITE_PROGRESS    0
+#define WRITE_RESULTS     0
+#define WRITE_PROGRESS    1
 #define PROFILING         1
 #define CALCULATE_STATS   1
 #ifdef NDEBUG
@@ -237,6 +238,7 @@ class classifier
 
     void train(size_t training_rows_begin, size_t training_rows_end, bool use_body)
     {
+        std::cout << "\nAnalyzing words ...";
         create_word_freq_map(ds_, "title", training_rows_end-training_rows_begin, title_words_);
         create_word_freq_map(ds_, "tags", training_rows_end-training_rows_begin, tag_words_);
         if (use_body)
@@ -246,21 +248,34 @@ class classifier
         for (size_t d=0; d<title_words_.size() + body_words_.size(); ++d)
 	        domains.emplace_back(0.0f, 1.0f, 2);  // min, max, number of values
         
-        if (tag_words_.size() > std::numeric_limits<int>::max())  // ensure a safe cast
+        if (tag_words_.size() > std::numeric_limits<int>::max())        // ensure a safe cast
             throw overflow_exception();
-        if (tag_words_.size()-1 > std::numeric_limits<float>::max())  // ensure a safe cast
+        if (tag_words_.size()-1 > std::numeric_limits<float>::max())    // ensure a safe cast
             throw overflow_exception();
 
         domains.emplace_back(0.0f, (float)(tag_words_.size()-1), (int)tag_words_.size());
         classifier_.reset(new BayesianClassifier(domains));
 
+        std::cout << "\nTraining ...";
         process_rows(
             training_rows_begin,
             training_rows_end,
             true,
-            [this](size_t, std::vector<float> const &data) {
+            [training_rows_begin, training_rows_end, this](size_t row, std::vector<float> const &data) {
+#ifdef WRITE_PROGRESS
+#ifdef NDEBUG
+                if (row % 1000 == 0)
+#else
+                if (row % 100 == 0)
+#endif
+                    std::cout << "\rTraining ... " << std::setprecision(0) << row*100. / (training_rows_end - training_rows_begin) << "%   ";
+#endif
                 classifier_->addRawTrainingData(data);
             });
+#if WRITE_RESULTS
+        std::cout << "\n";
+#endif
+        std::cout << "\rTraining ... Done      ";
     }
 
     void classify(size_t test_rows_begin, size_t test_rows_end)
@@ -308,17 +323,10 @@ class classifier
         std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
     }
 
-    class overflow_exception : public std::runtime_error
-    {
-      public:
-        overflow_exception() : std::runtime_error("Overflow exception")
-        { }
-    };
-
   private:
     void classify_partition(size_t test_rows_begin, size_t test_rows_end, std::pair<size_t, size_t> &result)
     {
-#if CALCULATE_STATS  &&  !WRITE_PROGRESS  &&  !PROFILING
+#if CALCULATE_STATS  &&  !WRITE_RESULTS  &&  !PROFILING
                 std::cout << "\nId\tExpected\tSuccess\tMissed\tFalse";
 #endif
 
@@ -332,12 +340,12 @@ class classifier
                 std::vector<int> tag_indices;
                 process_words(row, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
 
-#if WRITE_PROGRESS  ||  CALCULATE_STATS
+#if WRITE_RESULTS  ||  CALCULATE_STATS
                 std::sort(tag_indices.begin(), tag_indices.end());
                 auto const outputs = classifier_->calculatePossibleOutputs(data);
 #endif
 
-#if WRITE_PROGRESS
+#if WRITE_RESULTS
                 std::cout << "\nExpected        : ";
                 for (auto index : tag_indices)
                     std::cout << map_key(tag_words_, index) << " (" << index << ") ";
@@ -354,18 +362,18 @@ class classifier
                     outputs.begin(), outputs.end(),
                     std::back_inserter(correct));
 
-                auto const expected        = tag_indices.size();
-                auto const success         = correct.size();
+                auto const expected = tag_indices.size();
+                auto const success  = correct.size();
+                cumm_success  += success;
+                cumm_expected += expected;
+#if WRITE_RESULTS
                 auto const missed          = tag_indices.size() - correct.size();
                 auto const false_positives = outputs.size() - correct.size();
-                auto const rate            = (expected==success) ? 1.0f : float(success) / expected;
-                cumm_success += success;
-                cumm_expected += expected;
-#if WRITE_PROGRESS
                 std::cout << "\nSuccess: " << success << "%\t";
                 std::cout << "\nMissed: " << missed << "%\t";
                 std::cout << "\nFalse: " << false_positives << "%\t";
 #elif !PROFILING
+                auto const rate = (expected==success) ? 1.0f : float(success) / expected;
                 std::cout << "\n" << ds_[row]["id"].get<string_view>()
                           << "\t" << std::setw(3) << std::right << expected
                           << "\t" << std::setw(3) << std::right << success
@@ -390,29 +398,29 @@ class classifier
         if (training)
             ++columns;
         data.resize(columns);
-        for (size_t loop=begin; loop<end; ++loop)
+        for (size_t index=begin; index<end; ++index)
         {
             // reset the vector to contain zeros
             for (float &value : data)
                 value = 0.0;
 
-#if WRITE_PROGRESS
-            std::cout << "\n\n" << ds_[loop][1].get<string_view>();
+#if WRITE_RESULTS
+            std::cout << "\n\n" << ds_[index][1].get<string_view>();
             std::cout << "\nTitle:";
 #endif
             // !!!binary title does/doesn't contain tag. Count might work better?
-            process_words(loop, 1, title_words_, [&data](int n) { data[n] = 1.0; });
+            process_words(index, 1, title_words_, [&data](int n) { data[n] = 1.0; });
             if (body_words_.size() > 0)
-                process_words(loop, 2, body_words_, [&data, this](int n) { data[n + title_words_.size()] = 1.0; });
+                process_words(index, 2, body_words_, [&data, this](int n) { data[n + title_words_.size()] = 1.0; });
 
-#if WRITE_PROGRESS
+#if WRITE_RESULTS
             std::cout << "\nTags:";
 #endif
             std::vector<int> tag_indices;
-            if (training  ||  WRITE_PROGRESS)
-                process_words(loop, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
+            if (training  ||  WRITE_RESULTS)
+                process_words(index, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
 
-#if WRITE_PROGRESS
+#if WRITE_RESULTS
             std::cout << "\nConsidered Words: ";
             for (size_t loop=0; loop<data.size(); ++loop)
             {
@@ -432,7 +440,7 @@ class classifier
                 std::cout << "\n*** " << std::setw(3) << std::right << index << " " << map_key(tag_words_, index) << " ";
 #endif
 
-#if 0 && !defined(NDEBUG)  &&  WRITE_PROGRESS
+#if 0 && !defined(NDEBUG)  &&  WRITE_RESULTS
             std::cout << "\n";
             for (float &value : data)
                 std::cout << (int)value;
@@ -440,14 +448,14 @@ class classifier
             // for train each output
             if (training)
             {
-                for (auto const &index : tag_indices)
+                for (auto const &tag_index : tag_indices)
                 {
-                    data[data.size()-1] = (float)index;
-                    fn(loop, data);
+                    data[data.size()-1] = (float)tag_index;
+                    fn(index, data);
                 }
             }
             else
-                fn(loop, data);
+                fn(index, data);
         }
     }
 
@@ -480,7 +488,7 @@ class classifier
                         throw overflow_exception();
                     fn((int)offset);
                 }
-#if WRITE_PROGRESS
+#if WRITE_RESULTS
                 else
                     std::cout << "\nUntrained words is ignored: " << word;
 #endif
@@ -529,8 +537,8 @@ int main()
     // use two thirds for training and a third for testing
     size_t const training_rows_begin = 0;
     size_t const training_rows_end   = training_rows_begin + size_t(num_rows * 0.666667);
-    size_t const test_rows_begin     = training_rows_begin; // training_rows_end;
-    size_t const test_rows_end       = training_rows_end;   // std::max(training_rows_begin + num_rows, ds.rows());
+    size_t const test_rows_begin     = training_rows_end;
+    size_t const test_rows_end       = std::max(training_rows_begin + num_rows, ds.rows());
 
     // attach to the last of the test rows
     if (!ds.is_attached())
@@ -538,14 +546,20 @@ int main()
 
     std::cout << "\n";
     ds.write_column_info(std::cout);
-    std::cout << "\n";
+    std::cout << "\nProcessing " << num_rows << " rows out of " << ds.rows();
 
-    classifier bayesian(ds);
-    std::cout << "\nTraining ...";
-    bayesian.train(training_rows_begin, training_rows_end, false);
+    try
+    {
+        classifier bayesian(ds);
+        bayesian.train(training_rows_begin, training_rows_end, false);
 
-    std::cout << "\nClassifying ...";
-    bayesian.classify(test_rows_begin, test_rows_end);
+        std::cout << "\nClassifying ...";
+        bayesian.classify(test_rows_begin, test_rows_end);
+    }
+    catch (std::exception const &e)
+    {
+        std::cerr << "\n\nEXCEPTION: " << e.what();
+    }
 
     std::cout << "\n";
 	return 0;

@@ -13,7 +13,7 @@ namespace data_processing {
 template<typename It>
 std::string porter_stemmer(It it, It ite)
 {
-    return std::string(&*it, &*ite);
+    return std::string();
 }
 
 std::string porter_stemmer(char const *string)

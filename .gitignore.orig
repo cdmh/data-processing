@@ -12,7 +12,13 @@
 *.la
 *.a
 
+<<<<<<< HEAD
 *.suo
 bin/*
 *.psess
 *.vsp
+=======
+data/*
+bin/*
+*.suo
+>>>>>>> stemming

@@ -70,29 +70,49 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage\lib;$(LibraryPath)</LibraryPath>
+<<<<<<< HEAD
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)</IntDir>
+    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+=======
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\compiler\$(ProjectName)</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+>>>>>>> stemming
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage\lib;$(LibraryPath)</LibraryPath>
+<<<<<<< HEAD
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)</IntDir>
+    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+=======
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\compiler\$(ProjectName)</IntDir>
+>>>>>>> stemming
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage;$(LibraryPath)</LibraryPath>
+<<<<<<< HEAD
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)</IntDir>
+    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+=======
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\compiler\$(ProjectName)</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+>>>>>>> stemming
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>D:\Development\Library\boost\boost_1_55_0b1;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Development\Library\boost\boost_1_55_0b1\stage;$(LibraryPath)</LibraryPath>
+<<<<<<< HEAD
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)</IntDir>
+    <IntDir>$(SolutionDir)\bin\compiler\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+=======
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\compiler\$(ProjectName)</IntDir>
+>>>>>>> stemming
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

@@ -29,5 +29,8 @@
     <ClCompile Include="stemming.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exhaustive_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

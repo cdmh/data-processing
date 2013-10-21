@@ -11,17 +11,20 @@ namespace cdmh {
 namespace data_processing {
 
 template<typename It>
+inline
 std::string porter_stemmer(It it, It ite)
 {
     return std::string();
 }
 
+inline
 std::string porter_stemmer(char const *string)
 {
     auto stem = porter_stemmer(string, string + strlen(string));
     return std::string(stem.begin(), stem.end());
 }
 
+inline
 std::string porter_stemmer(std::string const &string)
 {
     auto stem = porter_stemmer(string.cbegin(), string.cend());

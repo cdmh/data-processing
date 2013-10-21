@@ -2,6 +2,8 @@
 // Part of the Data Processing Library
 // https://github.com/cdmh/dataproc
 
+#include <iomanip>
+
 namespace cdmh {
 
 namespace data_processing {
@@ -194,6 +196,10 @@ inline bool const dataset::attach(char const *data, std::uint64_t max_records)
     return attach(data, data+strlen(data), max_records);
 }
 
+inline bool const dataset::is_attached() const
+{
+    return column_info_.size() > 0;
+}
 
 inline void dataset::create_column(unsigned index, string_view const &name, type_mask_t /*type*/)
 {
@@ -240,6 +246,23 @@ inline void dataset::store_field(unsigned index, string_view const &value, type_
 
     column_values_[index].emplace_back(value);
     assert(column_info_.size() == column_values_.size());
+}
+
+inline void dataset::write_column_info(std::ostream &o) const
+{
+    for (size_t loop=0; loop<columns(); ++loop)
+    {
+        o << std::setw(2)  << std::right << loop << ": "
+          << std::setw(25) << std::left  << column_title(loop);
+
+        switch (column_type(loop))
+        {
+            case string_type:   o << "\tstring";    break;
+            case double_type:   o << "\tdouble";    break;
+            case integer_type:  o << "\tinteger";   break;
+        }
+        o << "\n";
+    }
 }
 
 

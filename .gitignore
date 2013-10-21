@@ -12,8 +12,7 @@
 *.la
 *.a
 
-Debug/*
-Release/*
-data/*
 *.suo
-x64/*
+bin/*
+*.psess
+*.vsp

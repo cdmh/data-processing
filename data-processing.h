@@ -18,6 +18,30 @@
 #include "data_processing.detail.h"
 
 namespace cdmh {
+
+#if WIN32 && !defined(strncasecmp)
+inline int __cdecl strncasecmp(const char * first, const char * last, size_t count)
+{
+    if (!count)
+        return 0;
+
+    int f = 0;
+    int l = 0;
+
+    do
+    {
+        if (((f = *(first++)) >= 'A')  &&  (f <= 'Z'))
+            f -= 'A' - 'a';
+
+        if (((l = *(last++)) >= 'A')  &&  (l <= 'Z'))
+            l -= 'A' - 'a';
+    }
+    while (--count  &&  f  &&  (f == l));
+
+    return (f - l);
+}
+#endif
+
 namespace data_processing {
 
 template<typename T, typename U>
@@ -42,7 +66,12 @@ std::vector<T> split_string(U const &string, char const delim)
 class string_view
 {
   public:
-    string_view(char const *begin,char const *end): begin_(begin),end_(end)
+    string_view(char const *begin)
+      : begin_(begin), end_(begin + strlen(begin))
+    { }
+
+    string_view(char const *begin,char const *end)
+      : begin_(begin),end_(end)
     { }
 
     char const *begin() const { return begin_; }
@@ -67,6 +96,25 @@ bool const operator==(string_view const &first, char const *second)
         return false;
 
     return (strncasecmp(first.begin(), second, len1) == 0);
+}
+
+inline
+bool const operator<(string_view const &first, string_view const &second)
+{
+    auto const len1 = first.length();
+    auto const len2 = second.length();
+    if (len1 < len2)
+    {
+        auto cmp = strncasecmp(first.begin(), second.begin(), len1);
+        return (cmp <= 0);
+    }
+    else if (len1 > len2)
+    {
+        auto cmp = strncasecmp(first.begin(), second.begin(), len2);
+        return (cmp < 0);
+    }
+
+    return strncasecmp(first.begin(), second.begin(), len1) < 0;
 }
 
 bool const operator==(string_view const &first, string_view const &second);

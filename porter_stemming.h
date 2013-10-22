@@ -347,7 +347,7 @@ template<typename It>
 inline
 std::string stem(It it, It ite)
 {
-    return stem(&*it, &*ite);
+    return stem(&*it, &*it + std::distance(it,ite));
 }
 
 inline

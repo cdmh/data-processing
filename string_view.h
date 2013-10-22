@@ -63,12 +63,19 @@ namespace data_processing {
 class string_view
 {
   public:
+    string_view() : begin_(0), end_(0)
+    { }
+
     string_view(char const *begin)
       : begin_(begin), end_(begin + strlen(begin))
     { }
 
+    string_view(std::string const &string)
+      : begin_(&*string.cbegin()), end_(begin_ + string.length())
+    { }
+
     string_view(char const *begin,char const *end)
-      : begin_(begin),end_(end)
+      : begin_(begin), end_(end)
     { }
 
     char const *begin() const { return begin_; }

@@ -20,6 +20,15 @@ namespace {     // anonymous namespace
 
 using cdmh::data_processing::string_view;
 
+#ifndef USE_STEMMING
+#define USE_STEMMING 1
+#endif
+
+#if USE_STEMMING
+typedef std::string string_t;
+#else
+typedef string_view string_t;
+#endif
 
 // http://armandbrahaj.blog.al/2009/04/14/list-of-english-stop-words/
 char const * const english_stopwords[] = {
@@ -58,7 +67,7 @@ char const * const english_stopwords[] = {
     "would", "yet", "you", "your", "yours", "yourself", "yourselves" };
 
 inline
-bool const is_stop_word(string_view const &word)
+bool const is_stop_word(string_view word)
 {
     auto const stopwords_end = english_stopwords + (sizeof(english_stopwords) / sizeof(english_stopwords[0]));
     // stop word must be in ascending order
@@ -71,6 +80,12 @@ bool const is_stop_word(string_view const &word)
             }));
 
     return std::binary_search(english_stopwords, stopwords_end, word);
+}
+
+inline
+bool const is_stop_word(std::string const &word)
+{
+    return is_stop_word(string_view(word));
 }
 
 inline
@@ -92,12 +107,18 @@ It find_word_begin(It &it,It ite)
 }
 
 inline
-string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
+string_t next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
 {
     auto begin = find_word_begin(it,ite);
+    if (begin == ite)
+        return string_t();
     it = std::find_if(it, ite, [](char ch) { return !is_word_char(ch); });
-    auto word = string_view(begin, it);
-    return (ignore_stopwords  &&  is_stop_word(word))?
+#if USE_STEMMING
+    auto word = cdmh::data_processing::porter_stemmer::stem(begin, it);
+#else
+    auto word = string_t(begin, it);
+#endif
+    return (ignore_stopwords  &&  is_stop_word(string_t(begin, it)))?
         next_word(it, ite)
       : word;
 }
@@ -111,7 +132,7 @@ void calculate_hashes(string_view const &string, Out ito, bool ignore_stopwords=
     auto ite = string.end();
     while (it != ite)
     {
-        string_view const word = next_word(it, ite, ignore_stopwords);
+        auto const word = next_word(it, ite, ignore_stopwords);
         if (word.length() > 0)
             *ito++ = col.hash(word.begin(), word.end());
     }
@@ -153,7 +174,7 @@ void count_words(string_view const &string, Words &words, bool ignore_stopwords)
     auto ite = string.end();
     while (it != ite)
     {
-        string_view const word = next_word(it, ite, ignore_stopwords);
+        auto const word = next_word(it, ite, ignore_stopwords);
         if (word.length() > 0)
             words[word]++;
     }
@@ -163,7 +184,7 @@ void create_word_freq_map(
     cdmh::data_processing::dataset const &ds,
     char                           const *column,
     size_t                                rows,
-    std::map<string_view, std::uint64_t> &word_map,
+    std::map<string_t, std::uint64_t>    &word_map,
     bool                                  ignore_stopwords=true)
 {
     // count up the words and
@@ -253,6 +274,8 @@ class classifier
         if (tag_words_.size()-1 > std::numeric_limits<float>::max())    // ensure a safe cast
             throw overflow_exception();
 
+        std::cout << "\n" << tag_words_.size() << " tag words, " << title_words_.size() << " title words";
+
         domains.emplace_back(0.0f, (float)(tag_words_.size()-1), (int)tag_words_.size());
         classifier_.reset(new BayesianClassifier(domains));
 
@@ -280,6 +303,8 @@ class classifier
 
     void classify(size_t test_rows_begin, size_t test_rows_end)
     {
+        std::cout << "\nClassifying ...";
+
         auto cores = std::thread::hardware_concurrency();
         auto rows  = test_rows_end - test_rows_begin;
         auto size  = rows / cores;
@@ -320,7 +345,7 @@ class classifier
                 cumm_success  += result.second;
             });
 
-        std::cout << "\nAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
+        std::cout << "\rAccuracy: " << ((cumm_success *100)/cumm_expected) << "% over " << rows << " rows";
     }
 
   private:
@@ -460,24 +485,24 @@ class classifier
     }
 
     void process_words(
-        size_t                                row,
-        size_t                                column,
-        std::map<string_view, std::uint64_t> &word_map,
-        std::function<void (int)>             fn)
+        size_t                             row,
+        size_t                             column,
+        std::map<string_t, std::uint64_t> &word_map,
+        std::function<void (int)>          fn)
     {
         process_words(ds_[row][column].get<string_view>(), word_map, fn);
     }
 
     void process_words(
-        string_view                           string,
-        std::map<string_view, std::uint64_t> &word_map,
-        std::function<void (int)>             fn)
+        string_view                        string,
+        std::map<string_t, std::uint64_t> &word_map,
+        std::function<void (int)>          fn)
     {
         auto it  = string.begin();
         auto ite = string.end();
         while (it != ite)
         {
-            string_view const word = next_word(it, ite);
+            auto const word = next_word(it, ite);
             if (word.length() > 0)
             {
                 auto it = word_map.find(word);
@@ -500,9 +525,9 @@ class classifier
     // Dataset format: id, title, body, tags
     cdmh::data_processing::dataset const &ds_;
     std::unique_ptr<BayesianClassifier>   classifier_;
-    std::map<string_view, std::uint64_t>  title_words_;
-    std::map<string_view, std::uint64_t>  tag_words_;
-    std::map<string_view, std::uint64_t>  body_words_;
+    std::map<string_t, std::uint64_t>     title_words_;
+    std::map<string_t, std::uint64_t>     tag_words_;
+    std::map<string_t, std::uint64_t>     body_words_;
 };
 
 int main()
@@ -523,7 +548,7 @@ int main()
     std::cout << "Loading file ...";
     cdmh::data_processing::dataset ds;
 #ifdef NDEBUG
-    size_t num_rows = 10000;
+    size_t num_rows = 100000;
 #else
     size_t num_rows = 100;
 #endif
@@ -552,8 +577,6 @@ int main()
     {
         classifier bayesian(ds);
         bayesian.train(training_rows_begin, training_rows_end, false);
-
-        std::cout << "\nClassifying ...";
         bayesian.classify(test_rows_begin, test_rows_end);
     }
     catch (std::exception const &e)

@@ -13,6 +13,7 @@ using cdmh::data_processing::porter_stemmer;
 #define EXHAUSTIVE_TEST 0
 #endif
 
+#if defined(NDEBUG)  &&  EXHAUSTIVE_TEST
 TEST_CASE("stemmer/exhaustive", "http://tartarus.org/martin/PorterStemmer/")
 {
     char const * const vocabulary[] = {
@@ -23,7 +24,6 @@ TEST_CASE("stemmer/exhaustive", "http://tartarus.org/martin/PorterStemmer/")
         "abandoned", "abandon",
         "abase", "abas",
         "abash", "abash",
-#if defined(NDEBUG)  &&  EXHAUSTIVE_TEST
         "abate", "abat",
         "abated", "abat",
         "abatement", "abat",
@@ -23542,7 +23542,6 @@ TEST_CASE("stemmer/exhaustive", "http://tartarus.org/martin/PorterStemmer/")
         "zenith", "zenith",
         "zephyrs", "zephyr",
         "zir", "zir",
-#endif
         "zo", "zo",
         "zodiac", "zodiac",
         "zodiacs", "zodiac",
@@ -23553,3 +23552,4 @@ TEST_CASE("stemmer/exhaustive", "http://tartarus.org/martin/PorterStemmer/")
     for (size_t i=0; i<sizeof(vocabulary)/sizeof(vocabulary[0]); i+=2)
         CHECK(porter_stemmer(vocabulary[i]) == porter_stemmer(vocabulary[i+1]));
 }
+#endif

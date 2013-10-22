@@ -9,28 +9,52 @@
 
 namespace cdmh {
 
-#if WIN32 && !defined(strncasecmp)
-inline int __cdecl strncasecmp(const char * first, const char * last, size_t count)
-{
-    if (!count)
-        return 0;
+#ifdef strncasecmp
+#undef strncasecmp
+#endif
 
-    int f = 0;
-    int l = 0;
+inline int __cdecl strcasecmp(const char *first, const char *second)
+{
+    int f;
+    int s;
 
     do
     {
         if (((f = *(first++)) >= 'A')  &&  (f <= 'Z'))
             f -= 'A' - 'a';
 
-        if (((l = *(last++)) >= 'A')  &&  (l <= 'Z'))
-            l -= 'A' - 'a';
+        if (((s = *(second++)) >= 'A')  &&  (s <= 'Z'))
+            s -= 'A' - 'a';
     }
-    while (--count  &&  f  &&  (f == l));
+    while (*first  &&  *second  &&  f  &&  (f == s));
 
-    return (f - l);
+    if (!*first  &&  !*second)
+        return (f - s);
+    else if (*first)
+        return 1;
+    return -1;
 }
-#endif
+
+inline int __cdecl strncasecmp(const char * first, const char * second, size_t count)
+{
+    if (!count)
+        return 0;
+
+    int f;
+    int s;
+
+    do
+    {
+        if (((f = *(first++)) >= 'A')  &&  (f <= 'Z'))
+            f -= 'A' - 'a';
+
+        if (((s = *(second++)) >= 'A')  &&  (s <= 'Z'))
+            s -= 'A' - 'a';
+    }
+    while (--count  &&  f  &&  (f == s));
+
+    return (f - s);
+}
 
 namespace data_processing {
 

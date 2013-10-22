@@ -6,11 +6,14 @@
 // https://github.com/cdmh/dataproc
 
 #include <string>
+#include <cassert>
+#include "string_view.h"
 
 namespace cdmh {
+
 namespace data_processing {
 
-namespace stemmer {
+namespace porter_stemmer {
 
 class stemmer
 {
@@ -18,42 +21,44 @@ class stemmer
     std::string operator()(char const *it, char const *ite)
     {
         std::string result(it, ite);
-        b = &*result.begin();
-        k = (int)result.length()-1;
-        j = 0;
+        word = &*result.begin();
+        last_pos = (int)result.length()-1;
+        offset = 0;
 
-        step1ab();
+        step1a();
+        step1b();
         step1c();
         step2();
         step3();
         step4();
-        step5();
-        result.resize(k+1);
+        step5a();
+        step5b();
+        result.resize(last_pos+1);
         return result;
     }
 
   private:
-    // cons(i) is TRUE <=> b[i] is a consonant.
-    bool const cons(int i)
+    // is_consonant(i) is TRUE <=> word[i] is a consonant.
+    bool const is_consonant(int i) const
     {
-        switch (b[i])
+        switch (word[i])
         {
-            case 'a':
-            case 'e':
-            case 'i':
-            case 'o':
-            case 'u':
+            case 'a':  case 'A':
+            case 'e':  case 'E':
+            case 'i':  case 'I':
+            case 'o':  case 'O':
+            case 'u':  case 'U':
                 return false;
 
-            case 'y':
-                return (i == 0) ? true : !cons(i - 1);
+            case 'y':  case 'Y':
+                return (i == 0) ? true : !is_consonant(i - 1);
 
             default:
                 return true;
         }
     }
 
-    /* cvc(i) is TRUE <=> i-2,i-1,i has the form consonant - vowel - consonant
+    /* is_consonant_vowel_consonant(i) is TRUE <=> i-2,i-1,i has the form consonant - vowel - consonant
        and also if the second c is not w,x or y. this is used when trying to
        restore an e at the end of a short word. e.g.
 
@@ -61,45 +66,52 @@ class stemmer
           snow, box, tray.
 
     */
-    bool const cvc(int i)
+    bool const is_consonant_vowel_consonant(int i) const
     {
-        if (i < 2  ||  !cons(i - 2)  ||  cons(i - 1)  ||  !cons(i))
+        if (i < 2  ||  !is_consonant(i - 2)  ||  is_consonant(i - 1)  ||  !is_consonant(i))
             return false;
 
-        return (b[i] != 'w'  &&  b[i] != 'x'  &&  b[i] != 'y');
+        return word[i] != 'w'  &&  word[i] != 'x'  &&  word[i] != 'y'
+            && word[i] != 'W'  &&  word[i] != 'X'  &&  word[i] != 'Y';
     }
 
 
-    // double_consonant(j) is TRUE <=> j,(j-1) contain a double consonant
-    bool const double_consonant(int j)
+    // double_consonant(offset) is TRUE <=> offset,(offset-1) contain a double consonant
+    bool const double_consonant(int offset)
     {
-        if (j < 1)
+        if (offset < 1)
             return false;
 
-        if (b[j] != b[j - 1])
+        if (lower(word[offset]) != lower(word[offset - 1]))
             return false;
 
-        return cons(j);
+        return is_consonant(offset);
     }
 
-    // ends(s) is true <=> 0,...k ends with the string s.
-    bool const ends(char *s)
+    // ends(s) is true <=> 0,...last_pos ends with the string s.
+    bool const ends(int length, char *s)
     {
-        int length = s[0];
-        if (s[length] != b[k])
+        assert(length == strlen(s));
+
+        if (lower(s[length-1]) != lower(word[last_pos]))
+            return false;
+        else if (length > last_pos + 1)
+            return false;
+        else if (strncasecmp(word + last_pos - length + 1, s, length) != 0)
             return false;
 
-        if (length > k + 1)
-            return false;
-
-        if (memcmp(b + k - length + 1, s + 1, length) != 0)
-            return false;
-
-        j = k - length;
+        offset = last_pos - length;
         return true;
     }
 
-    /* m() measures the number of consonant sequences between 0 and j. if c is
+    char lower(char ch) const
+    {
+        if (ch >= 'A'  &&  ch <= 'Z')
+            ch += 'a' - 'A';
+        return ch;
+    }
+
+    /* measure() measures the number of consonant sequences between 0 and offset. if c is
        a consonant sequence and v a vowel sequence, and <..> indicates arbitrary
        presence,
 
@@ -109,258 +121,250 @@ class stemmer
           <c>vcvcvc<v> gives 3
           ....
     */
-    int const m()
+    int const measure() const
     {
-        int n = 0;
         int i = 0;
-        while(true)
-        {
-            if (i > j)
-                return n;
+        while (i <= offset  &&  is_consonant(i))
+            ++i;
+        if (i > offset)
+            return 0;
+        assert(!is_consonant(i));
 
-            if (!cons(i))
-                break;
-            i++;
-        }
-
-        i++;
-        while(true)
+        int count = 0;
+        while (true)
         {
-            while(true)
-            {
-                if (i > j)
-                    return n;
-                if (cons(i))
-                    break;
-                i++;
-            }
-            i++;
-            n++;
-            while(true)
-            {
-                if (i > j)
-                    return n;
-                if (!cons(i))
-                    break;
-                i++;
-            }
-            i++;
+            while (i <= offset  &&  !is_consonant(i))
+                ++i;
+            if (i > offset)
+                return count;
+            assert(is_consonant(i));
+
+            ++count;
+            while (i <= offset  &&  is_consonant(i))
+                ++i;
+            if (i > offset)
+                return count;
+            assert(!is_consonant(i));
+            ++i;
         }
     }
 
-    // setto(s) sets (j+1),...k to the characters in the string s, readjusting k.
-    void setto(char *s)
+    // setto(s) sets (offset+1),...last_pos to the characters in the string s, re-adjusting last_pos.
+    void setto(int length, char *s)
     {
-        int length = s[0];
-        memmove(b + j + 1, s + 1, length);
-        k = j+length;
+        assert(length == strlen(s));
+        memmove(word + offset + 1, s, length);
+        last_pos = offset + length;
     }
 
-    // r(s) is used further down.
-    void r(char *s)
+    void replace_if_measure(int length, char *s)
     {
-        if (m() > 0)
-            setto(s);
+        if (measure() > 0)
+            setto(length, s);
     }
 
-    // vowelinstem() is TRUE <=> 0,...j contains a vowel
-    bool const vowelinstem()
+    // vowelinstem() is TRUE <=> 0,...offset contains a vowel
+    bool const vowelinstem() const
     {
-        for (int i = 0; i <= j; i++)
+        for (int i = 0; i <= offset; ++i)
         {
-            if (! cons(i))
+            if (!is_consonant(i))
                 return true;
         }
 
         return false;
     }
 
-    void step1ab()
+    void step1a()
     {
-        // step 1a
-        if (b[k] == 's')
+        if (lower(word[last_pos]) == 's')
         {
-            if (ends("\04" "sses"))
-                k -= 2;
-            else if (ends("\03" "ies"))
-                setto("\01" "i");
-            else if (b[k - 1] != 's')
-                --k;
+            if (ends(4, "sses"))
+                last_pos -= 2;
+            else if (ends(3, "ies"))
+                setto(1, "i");
+            else if (lower(word[last_pos - 1]) != 's')
+                --last_pos;
         }
+    }
 
-        // step 1b
-        if (ends("\03" "eed"))
+    void step1b()
+    {
+        if (ends(3, "eed"))
         {
-            if (m() > 0)
-                --k;
+            if (measure() > 0)
+                --last_pos;
         }
-        else if ((ends("\02" "ed")  ||  ends("\03" "ing"))  &&  vowelinstem())
+        else if ((ends(2, "ed")  ||  ends(3, "ing"))  &&  vowelinstem())
         {
-            k = j;
-            if (ends("\02" "at"))        setto("\03" "ate");
-            else if (ends("\02" "bl"))   setto("\03" "ble");
-            else if (ends("\02" "iz"))   setto("\03" "ize");      // US english
-            else if (ends("\02" "is"))   setto("\03" "ise");      // UK english
-            else if (double_consonant(k))
+            last_pos = offset;
+            if (ends(2, "at"))        setto(3, "ate");
+            else if (ends(2, "bl"))   setto(3, "ble");
+            else if (ends(2, "iz"))   setto(3, "ize");      // US english
+            else if (ends(2, "is"))   setto(3, "ise");      // UK english
+            else if (double_consonant(last_pos))
             {
-                --k;
+                --last_pos;
 
-                int ch = b[k];
-                if (ch == 'l'  ||  ch == 's'  ||  ch == 'z')
-                    k++;
+                int ch = word[last_pos];
+                if (ch == 'l'  ||  ch == 's'  ||  ch == 'z'  ||  ch == 'L'  ||  ch == 'S'  ||  ch == 'Z')
+                    last_pos++;
             }
-            else if (m() == 1  &&  cvc(k))
-                setto("\01" "e");
+            else if (measure() == 1  &&  is_consonant_vowel_consonant(last_pos))
+                setto(1, "e");
         }
     }
 
     void step1c()
     {
-        if (ends("\01" "y")  &&  vowelinstem())
-            b[k] = 'i';
+        if (ends(1, "y")  &&  vowelinstem())
+            word[last_pos] = 'i';
     }
 
     void step2()
     {
-        switch (b[k-1])
+        switch (lower(word[last_pos-1]))
         {
-           case 'a': if (ends("\07" "ational"))      r("\03" "ate"); 
-                     else if (ends("\06" "tional"))  r("\04" "tion");
-                     break;
-           case 'c': if (ends("\04" "enci"))         r("\04" "ence");
-                     else if (ends("\04" "anci"))    r("\04" "ance");
-                     break;
-           case 'e': if (ends("\04" "izer"))         r("\03" "ize"); 
-                     else if (ends("\04" "iser"))    r("\03" "ise");    // UK english
-                     break;
-           case 'l': if (ends("\03" "bli"))          r("\03" "ble"); 
-                     else if (ends("\04" "alli"))    r("\02" "al");  
-                     else if (ends("\05" "entli"))   r("\03" "ent"); 
-                     else if (ends("\03" "eli"))     r("\01" "e");   
-                     else if (ends("\05" "ousli"))   r("\03" "ous"); 
-                     break;
-           case 'o': if (ends("\07" "ization"))      r("\03" "ize"); 
-                     else if (ends("\07" "isation")) r("\03" "ise");    // UK english
-                     else if (ends("\05" "ation"))   r("\03" "ate"); 
-                     else if (ends("\04" "ator"))    r("\03" "ate"); 
-                     break;
-           case 's': if (ends("\05" "alism"))        r("\02" "al");  
-                     else if (ends("\07" "iveness")) r("\03" "ive"); 
-                     else if (ends("\07" "fulness")) r("\03" "ful"); 
-                     else if (ends("\07" "ousness")) r("\03" "ous"); 
-                     break;
-           case 't': if (ends("\05" "aliti"))        r("\02" "al");  
-                     else if (ends("\05" "iviti"))   r("\03" "ive"); 
-                     else if (ends("\06" "biliti"))  r("\03" "ble"); 
-                     break;
-           case 'g': if (ends("\04" "logi"))         r("\03" "log"); 
-                     break;
+           case 'a':    if (ends(7, "ational"))         replace_if_measure(3, "ate"); 
+                        else if (ends(6, "tional"))     replace_if_measure(4, "tion");
+                        break;
+           case 'c':    if (ends(4, "enci"))            replace_if_measure(4, "ence");
+                        else if (ends(4, "anci"))       replace_if_measure(4, "ance");
+                        break;
+           case 'e':    if (ends(4, "izer"))            replace_if_measure(3, "ize"); 
+                        else if (ends(4, "iser"))       replace_if_measure(3, "ise");    // UK english
+                        break;
+           case 'l':    if (ends(3, "bli"))             replace_if_measure(3, "ble"); 
+                        else if (ends(4, "alli"))       replace_if_measure(2, "al");  
+                        else if (ends(5, "entli"))      replace_if_measure(3, "ent"); 
+                        else if (ends(3, "eli"))        replace_if_measure(1, "e");   
+                        else if (ends(5, "ousli"))      replace_if_measure(3, "ous"); 
+                        break;
+           case 'o':    if (ends(7, "ization"))         replace_if_measure(3, "ize"); 
+                        else if (ends(7, "isation"))    replace_if_measure(3, "ise");    // UK english
+                        else if (ends(5, "ation"))      replace_if_measure(3, "ate"); 
+                        else if (ends(4, "ator"))       replace_if_measure(3, "ate"); 
+                        break;
+           case 's':    if (ends(5, "alism"))           replace_if_measure(2, "al");  
+                        else if (ends(7, "iveness"))    replace_if_measure(3, "ive"); 
+                        else if (ends(7, "fulness"))    replace_if_measure(3, "ful"); 
+                        else if (ends(7, "ousness"))    replace_if_measure(3, "ous"); 
+                        break;
+           case 't':    if (ends(5, "aliti"))           replace_if_measure(2, "al");  
+                        else if (ends(5, "iviti"))      replace_if_measure(3, "ive"); 
+                        else if (ends(6, "biliti"))     replace_if_measure(3, "ble"); 
+                        break;
+           case 'g':    if (ends(4, "logi"))            replace_if_measure(3, "log"); 
+                        break;
         }
     }
 
     // step3() deals with -ic-, -full, -ness etc. similar strategy to step2.
     void step3()
     {
-        switch (b[k])
+        switch (lower(word[last_pos]))
         {
-           case 'e': if (ends("\05" "icate")) { r("\02" "ic"); break; }
-                     if (ends("\05" "ative")) { r("\00" "");   break; }
-                     if (ends("\05" "alize")) { r("\02" "al"); break; }
-                     if (ends("\05" "alise")) { r("\02" "al"); break; } // UK english
-                     break;
-           case 'i': if (ends("\05" "iciti")) { r("\02" "ic"); break; }
-                     break;
-           case 'l': if (ends("\04" "ical"))  { r("\02" "ic"); break; }
-                     if (ends("\03" "ful"))   { r("\00" "");   break; }
-                     break;
-           case 's': if (ends("\04" "ness"))  { r("\00" "");   break; }
-                     break;
+           case 'e':    if (ends(5, "icate"))       replace_if_measure(2, "ic");
+                        else if (ends(5, "ative"))  replace_if_measure(0, "");  
+                        else if (ends(5, "alize"))  replace_if_measure(2, "al");
+                        else if (ends(5, "alise"))  replace_if_measure(2, "al");    // UK english
+                        break;
+           case 'i':    if (ends(5, "iciti"))       replace_if_measure(2, "ic");
+                        break;
+           case 'l':    if (ends(4, "ical"))        replace_if_measure(2, "ic");
+                        else if (ends(3, "ful"))    replace_if_measure(0, "");
+                        break;
+           case 's':    if (ends(4, "ness"))        replace_if_measure(0, "");
+                        break;
         }
     }
 
     // step4() takes off -ant, -ence etc., in context <c>vcvc<v>.
     void step4()
     {
-        switch (b[k-1])
+        switch (lower(word[last_pos-1]))
         {
-            case 'a':   if (ends("\02" "al"))       break; return;
-            case 'c':   if (ends("\04" "ance"))     break;
-                        if (ends("\04" "ence"))     break; return;
-            case 'e':   if (ends("\02" "er"))       break; return;
-            case 'i':   if (ends("\02" "ic"))       break; return;
-            case 'l':   if (ends("\04" "able"))     break;
-                        if (ends("\04" "ible"))     break; return;
-            case 'n':   if (ends("\03" "ant"))      break;
-                        if (ends("\05" "ement"))    break;
-                        if (ends("\04" "ment"))     break;
-                        if (ends("\03" "ent"))      break; return;
-            case 'o':   if (ends("\03" "ion") && j >= 0 && (b[j] == 's' || b[j] == 't')) break;
-                        if (ends("\02" "ou"))       break; return; // takes care of -ous
-            case 's':   if (ends("\03" "ism"))      break; return;
-            case 't':   if (ends("\03" "ate"))      break;
-                        if (ends("\03" "iti"))      break; return;
-            case 'u':   if (ends("\03" "ous"))      break; return;
-            case 'v':   if (ends("\03" "ive"))      break; return;
-            case 'z':   if (ends("\03" "ize"))      break; return;
+            case 'a':   if (ends(2, "al"))          break; else return;
+            case 'c':   if (ends(4, "ance"))        break;
+                        else if (ends(4, "ence"))   break; else return;
+            case 'e':   if (ends(2, "er"))          break; else return;
+            case 'i':   if (ends(2, "ic"))          break; else return;
+            case 'l':   if (ends(4, "able"))        break;
+                        else if (ends(4, "ible"))   break; else return;
+            case 'n':   if (ends(3, "ant"))         break;
+                        else if (ends(5, "ement"))  break;
+                        else if (ends(4, "ment"))   break;
+                        else if (ends(3, "ent"))    break; else return;
+            case 'o':   if (ends(3, "ion") && offset >= 0 && (word[offset] == 's' || word[offset] == 't'  ||  word[offset] == 'S' || word[offset] == 'T')) break;
+                        else if (ends(2, "ou"))     break; else return; // takes care of -ous
+            case 's':   if (ends(3, "ism"))         break; else return;
+            case 't':   if (ends(3, "ate"))         break;
+                        else if (ends(3, "iti"))    break; else return;
+            case 'u':   if (ends(3, "ous"))         break; else return;
+            case 'v':   if (ends(3, "ive"))         break; else return;
+            case 'z':   if (ends(3, "ize"))         break; else return;
             default:    return;
         }
 
-        if (m() > 1)
-            k = j;
+        if (measure() > 1)
+            last_pos = offset;
     }
 
-    // step5() removes a final -e if m() > 1, and changes -ll to -l if m() > 1.
-    void step5()
+    // remove a final -e if measure() > 1,
+    void step5a()
     {
-        j = k;
+        offset = last_pos;
 
         // step 5a
-        if (b[k] == 'e')
+        if (lower(word[last_pos]) == 'e')
         {
-            int a = m();
-            if (a > 1  ||  a == 1  &&  !cvc(k - 1))
-                --k;
+            int a = measure();
+            if (a > 1  ||  a == 1  &&  !is_consonant_vowel_consonant(last_pos - 1))
+                --last_pos;
         }
+    }
 
-        // step 5b
-        if (b[k] == 'l'  &&  double_consonant(k)  &&  m() > 1)
-            --k;
+    // change -ll to -l if measure() > 1.
+    void step5b()
+    {
+        if ((word[last_pos] == 'l'  ||  word[last_pos] == 'L')  &&  double_consonant(last_pos)  &&  measure() > 1)
+            --last_pos;
     }
 
   private:
-    char *b;       // buffer for word to be stemmed
-    int   k;       // offset to the end of the string
-    int   j;       // a general offset into the string
+    char *word;     // buffer for word to be stemmed
+    int   last_pos; // offset to the end of the string (not one-past the end!)
+    int   offset;   // a general offset into the string
 };
 
-inline std::string porter_stemmer(char const *it, char const *ite)
+inline std::string stem(char const *it, char const *ite)
 {
-    stemmer s;
+    porter_stemmer::stemmer s;
     return s(it, ite);
 }
 
-}   // namespace stemmer
-
-
 template<typename It>
 inline
-std::string porter_stemmer(It it, It ite)
+std::string stem(It it, It ite)
 {
-    return stemmer::porter_stemmer(&*it, &*ite);
+    return stem(&*it, &*ite);
 }
 
 inline
-std::string porter_stemmer(char const *string)
+std::string stem(char const *string)
 {
-    return porter_stemmer(string, string + strlen(string));
+    return stem(string, string + strlen(string));
 }
 
 inline
-std::string porter_stemmer(std::string const &string)
+std::string stem(std::string const &string)
 {
-    auto stem = porter_stemmer(string.cbegin(), string.cend());
-    return std::string(stem.begin(), stem.end());
+    return stem(string.cbegin(), string.cend());
 }
+
+}   // namespace porter_stemmer
+
 
 }   // namespace data_processing
+
 }   // namespace cdmh

@@ -10,238 +10,245 @@
 
 namespace { // anonymous namespace
 
-using cdmh::data_processing::porter_stemmer;
+using cdmh::data_processing::porter_stemmer::stem;
 
 TEST_CASE("stemmer/Step1a","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("caress") == "caress");
-    CHECK(porter_stemmer("caresses") == "caress");
-    CHECK(porter_stemmer("ponies") == "poni");
-    CHECK(porter_stemmer("ties") == "ti");
-    CHECK(porter_stemmer("cats") == "cat");
+    CHECK(stem("caress") == "caress");
+    CHECK(stem("caresses") == "caress");
+    CHECK(stem("ponies") == "poni");
+    CHECK(stem("ties") == "ti");
+    CHECK(stem("cats") == "cat");
 }
 
 TEST_CASE("stemmer/Step1b","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("conflated") == "conflate");
-    CHECK(porter_stemmer("feed") == "feed");
-    CHECK(porter_stemmer("agreed") == "agree");
-    CHECK(porter_stemmer("plastered") == "plaster");
-    CHECK(porter_stemmer("bled") == "bled");
-    CHECK(porter_stemmer("motoring") == "motor");
-    CHECK(porter_stemmer("sing") == "sing");
-    CHECK(porter_stemmer("troubled") == "trouble");
-    CHECK(porter_stemmer("sized") == "size");
-    CHECK(porter_stemmer("hopping") == "hop");
-    CHECK(porter_stemmer("tanned") == "tan");
-    CHECK(porter_stemmer("falling") == "fall");
-    CHECK(porter_stemmer("hissing") == "hiss");
-    CHECK(porter_stemmer("fizzed") == "fizz");
-    CHECK(porter_stemmer("failing") == "fail");
-    CHECK(porter_stemmer("filing") == "file");
-    CHECK(porter_stemmer("disabled") == "disable");
-    CHECK(porter_stemmer("matting") == "mat");
-    CHECK(porter_stemmer("mating") == "mate");
-    CHECK(porter_stemmer("meeting") == "meet");
-    CHECK(porter_stemmer("milling") == "mill");
-    CHECK(porter_stemmer("messing") == "mess");
-    CHECK(porter_stemmer("meetings") == "meet");
+    CHECK(stem("conflated") == "conflate");
+    CHECK(stem("feed") == "feed");
+    CHECK(stem("agreed") == "agree");
+    CHECK(stem("plastered") == "plaster");
+    CHECK(stem("bled") == "bled");
+    CHECK(stem("motoring") == "motor");
+    CHECK(stem("sing") == "sing");
+    CHECK(stem("troubled") == "trouble");
+    CHECK(stem("sized") == "size");
+    CHECK(stem("hopping") == "hop");
+    CHECK(stem("tanned") == "tan");
+    CHECK(stem("falling") == "fall");
+    CHECK(stem("hissing") == "hiss");
+    CHECK(stem("fizzed") == "fizz");
+    CHECK(stem("failing") == "fail");
+    CHECK(stem("filing") == "file");
+    CHECK(stem("disabled") == "disable");
+    CHECK(stem("matting") == "mat");
+    CHECK(stem("mating") == "mate");
+    CHECK(stem("meeting") == "meet");
+    CHECK(stem("milling") == "mill");
+    CHECK(stem("messing") == "mess");
+    CHECK(stem("meetings") == "meet");
 }
 
 TEST_CASE("stemmer/step1c","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("happy") == "happi");
-    CHECK(porter_stemmer("sky") == "sky");
+    CHECK(stem("happy") == "happi");
+    CHECK(stem("sky") == "sky");
 }
 
 TEST_CASE("stemmer/step2","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("relational") == "relate");
-    CHECK(porter_stemmer("conditional") == "condition");
-    CHECK(porter_stemmer("rational") == "rational");
-    CHECK(porter_stemmer("valenci") == "valence");
-    CHECK(porter_stemmer("hesitanci") == "hesitance");
-    CHECK(porter_stemmer("digitizer") == "digitize");
-    CHECK(porter_stemmer("digitiser") == "digitise");
-    CHECK(porter_stemmer("conformabli") == "conformable");
-    CHECK(porter_stemmer("radicalli") == "radical");
-    CHECK(porter_stemmer("differentli") == "different");
-    CHECK(porter_stemmer("vileli") == "vile");
-    CHECK(porter_stemmer("analogousli") == "analogous");
-    CHECK(porter_stemmer("vietnamization") == "vietnamize");
-    CHECK(porter_stemmer("vietnamisation") == "vietnamise");
-    CHECK(porter_stemmer("predication") == "predicate");
-    CHECK(porter_stemmer("operator") == "operate");
-    CHECK(porter_stemmer("feudalism") == "feudal");
-    CHECK(porter_stemmer("decisiveness") == "decisive");
-    CHECK(porter_stemmer("hopefulness") == "hopeful");
-    CHECK(porter_stemmer("callousness") == "callous");
-    CHECK(porter_stemmer("formaliti") == "formal");
-    CHECK(porter_stemmer("sensitiviti") == "sensitive");
-    CHECK(porter_stemmer("sensibiliti") == "sensible");
+    CHECK(stem("relational") == "relate");
+    CHECK(stem("conditional") == "condition");
+    CHECK(stem("rational") == "rational");
+    CHECK(stem("valenci") == "valence");
+    CHECK(stem("hesitanci") == "hesitance");
+    CHECK(stem("digitizer") == "digitize");
+    CHECK(stem("digitiser") == "digitise");
+    CHECK(stem("conformabli") == "conformable");
+    CHECK(stem("radicalli") == "radical");
+    CHECK(stem("differentli") == "different");
+    CHECK(stem("vileli") == "vile");
+    CHECK(stem("analogousli") == "analogous");
+    CHECK(stem("vietnamization") == "vietnamize");
+    CHECK(stem("vietnamisation") == "vietnamise");
+    CHECK(stem("predication") == "predicate");
+    CHECK(stem("operator") == "operate");
+    CHECK(stem("feudalism") == "feudal");
+    CHECK(stem("decisiveness") == "decisive");
+    CHECK(stem("hopefulness") == "hopeful");
+    CHECK(stem("callousness") == "callous");
+    CHECK(stem("formaliti") == "formal");
+    CHECK(stem("sensitiviti") == "sensitive");
+    CHECK(stem("sensibiliti") == "sensible");
 }
 
 TEST_CASE("stemmer/step3","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("triplicate") == "triplic");
-    CHECK(porter_stemmer("formative") == "form");
-    CHECK(porter_stemmer("formalize") == "formal");
-    CHECK(porter_stemmer("formalise") == "formal");
-    CHECK(porter_stemmer("electriciti") == "electric");
-    CHECK(porter_stemmer("electrical") == "electric");
-    CHECK(porter_stemmer("hopeful") == "hope");
-    CHECK(porter_stemmer("goodness") == "good");
+    CHECK(stem("triplicate") == "triplic");
+    CHECK(stem("formative") == "form");
+    CHECK(stem("formalize") == "formal");
+    CHECK(stem("formalise") == "formal");
+    CHECK(stem("electriciti") == "electric");
+    CHECK(stem("electrical") == "electric");
+    CHECK(stem("hopeful") == "hope");
+    CHECK(stem("goodness") == "good");
 }
 
 TEST_CASE("stemmer/step4","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("revival") == "reviv");
-    CHECK(porter_stemmer("allowance") == "allow");
-    CHECK(porter_stemmer("inference") == "infer");
-    CHECK(porter_stemmer("airliner") == "airlin");
-    CHECK(porter_stemmer("gyroscopic") == "gyroscop");
-    CHECK(porter_stemmer("adjustable") == "adjust");
-    CHECK(porter_stemmer("defensible") == "defens");
-    CHECK(porter_stemmer("irritant") == "irrit");
-    CHECK(porter_stemmer("replacement") == "replac");
-    CHECK(porter_stemmer("adjustment") == "adjust");
-    CHECK(porter_stemmer("dependent") == "depend");
-    CHECK(porter_stemmer("adoption") == "adopt");
-    CHECK(porter_stemmer("homologou") == "homolog");
-    CHECK(porter_stemmer("communism") == "commun");
-    CHECK(porter_stemmer("activate") == "activ");
-    CHECK(porter_stemmer("angulariti") == "angular");
-    CHECK(porter_stemmer("homologous") == "homolog");
-    CHECK(porter_stemmer("effective") == "effect");
-    CHECK(porter_stemmer("bowdlerize") == "bowdler");
-    CHECK(porter_stemmer("bowdlerise") == "bowdler");
+    CHECK(stem("revival") == "reviv");
+    CHECK(stem("allowance") == "allow");
+    CHECK(stem("inference") == "infer");
+    CHECK(stem("airliner") == "airlin");
+    CHECK(stem("gyroscopic") == "gyroscop");
+    CHECK(stem("adjustable") == "adjust");
+    CHECK(stem("defensible") == "defens");
+    CHECK(stem("irritant") == "irrit");
+    CHECK(stem("replacement") == "replac");
+    CHECK(stem("adjustment") == "adjust");
+    CHECK(stem("dependent") == "depend");
+    CHECK(stem("adoption") == "adopt");
+    CHECK(stem("homologou") == "homolog");
+    CHECK(stem("communism") == "commun");
+    CHECK(stem("activate") == "activ");
+    CHECK(stem("angulariti") == "angular");
+    CHECK(stem("homologous") == "homolog");
+    CHECK(stem("effective") == "effect");
+    CHECK(stem("bowdlerize") == "bowdler");
+    CHECK(stem("bowdlerise") == "bowdler");
 }
 
 TEST_CASE("stemmer/step5a","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("probate") == "probat");
-    CHECK(porter_stemmer("rate") == "rate");
-    CHECK(porter_stemmer("cease") == "ceas");
+    CHECK(stem("probate") == "probat");
+    CHECK(stem("rate") == "rate");
+    CHECK(stem("cease") == "ceas");
 }
 
 TEST_CASE("stemmer/step5b","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("controll") == "control");
-    CHECK(porter_stemmer("roll") == "roll");
+    CHECK(stem("controll") == "control");
+    CHECK(stem("roll") == "roll");
 }
 
 TEST_CASE("stemmer/stem too short","http://tartarus.org/martin/PorterStemmer/def.txt")
 {
-    CHECK(porter_stemmer("RELATE") == "RELATE");
-    CHECK(porter_stemmer("PROBATE") == "PROBATE");
-    CHECK(porter_stemmer("CONFLATE") == "CONFLATE");
-    CHECK(porter_stemmer("PIRATE") == "PIRATE");
-    CHECK(porter_stemmer("PRELATE") == "PRELATE");
+    CHECK(stem("relate") == "relate");
+    CHECK(stem("probate") == "probate");
+    CHECK(stem("conflate") == "conflate");
+    CHECK(stem("pirate") == "pirate");
+    CHECK(stem("prelate") == "prelate");
 
-    CHECK(porter_stemmer("DERIVATE") == "DERIV");
-    CHECK(porter_stemmer("ACTIVATE") == "ACTIV");
-    CHECK(porter_stemmer("DEMONSTRATE") == "DEMONSTR");
-    CHECK(porter_stemmer("NECESSITATE") == "NECESSIT");
-    CHECK(porter_stemmer("RENOVATE") == "RENOV");
+    CHECK(stem("derivate") == "deriv");
+    CHECK(stem("activate") == "activ");
+    CHECK(stem("demonstrate") == "demonstr");
+    CHECK(stem("necessitate") == "necessit");
+    CHECK(stem("renovate") == "renov");
 
-    CHECK(porter_stemmer("DERIVATE") == porter_stemmer("DERIVE"));
-    CHECK(porter_stemmer("ACTIVATE") == porter_stemmer("ACTIVE"));
-    CHECK(porter_stemmer("DEMONSTRATE") == porter_stemmer("DEMONSTRABLE"));
-    CHECK(porter_stemmer("NECESSITATE") == porter_stemmer("NECESSITOUS"));
+    CHECK(stem("derivate") == stem("derive"));
+    CHECK(stem("activate") == stem("active"));
+    CHECK(stem("demonstrate") == stem("demonstrable"));
+    CHECK(stem("necessitate") == stem("necessitous"));
 }
 
 TEST_CASE("stemmer/misc","miscellaneous and common errors")
 {
-    CHECK(porter_stemmer("ion") == "ion");
-    CHECK(porter_stemmer("possibly") == porter_stemmer("possible"));
-    CHECK(porter_stemmer("archaeology") == porter_stemmer("archaeological"));
+    CHECK(stem("ion") == "ion");
+    CHECK(stem("possibly") == stem("possible"));
+    CHECK(stem("archaeology") == stem("archaeological"));
 
     // test common errors
-    CHECK(porter_stemmer("argument") == "argum");
+    CHECK(stem("argument") == "argum");
+}
+
+TEST_CASE("stemmer/case match","")
+{
+    CHECK(cdmh::strcasecmp(stem("iOn").c_str(), "ion") == 0);
+    CHECK(cdmh::strcasecmp(stem("possiBLy").c_str(), stem("possiblE").c_str()) == 0);
+    CHECK(cdmh::strcasecmp(stem("ARCHAEOLOGY").c_str(), stem("archaeological").c_str()) == 0);
 }
 
 TEST_CASE("stemmer/test stems","http://snowball.tartarus.org/algorithms/english/stemmer.html")
 {
-    CHECK(porter_stemmer("consign") == "consign");
-    CHECK(porter_stemmer("consigned") == "consign");
-    CHECK(porter_stemmer("consigning") == "consign");
-    CHECK(porter_stemmer("consignment") == "consign");
-    CHECK(porter_stemmer("consist") == "consist");
-    CHECK(porter_stemmer("consisted") == "consist");
-    CHECK(porter_stemmer("consistency") == "consist");
-    CHECK(porter_stemmer("consistent") == "consist");
-    CHECK(porter_stemmer("consistently") == "consist");
-    CHECK(porter_stemmer("consisting") == "consist");
-    CHECK(porter_stemmer("consists") == "consist");
-    CHECK(porter_stemmer("consolation") == "consol");
-    CHECK(porter_stemmer("consolations") == "consol");
-    CHECK(porter_stemmer("consolatory") == "consolatori");
-    CHECK(porter_stemmer("console") == "consol");
-    CHECK(porter_stemmer("consoled") == "consol");
-    CHECK(porter_stemmer("consoles") == "consol");
-    CHECK(porter_stemmer("consolidate") == "consolid");
-    CHECK(porter_stemmer("consolidated") == "consolid");
-    CHECK(porter_stemmer("consolidating") == "consolid");
-    CHECK(porter_stemmer("consoling") == "consol");
-    CHECK(porter_stemmer("consolingly") == "consol");
-    CHECK(porter_stemmer("consols") == "consol");
-    CHECK(porter_stemmer("consonant") == "conson");
-    CHECK(porter_stemmer("consort") == "consort");
-    CHECK(porter_stemmer("consorted") == "consort");
-    CHECK(porter_stemmer("consorting") == "consort");
-    CHECK(porter_stemmer("conspicuous") == "conspicu");
-    CHECK(porter_stemmer("conspicuously") == "conspicu");
-    CHECK(porter_stemmer("conspiracy") == "conspiraci");
-    CHECK(porter_stemmer("conspirator") == "conspir");
-    CHECK(porter_stemmer("conspirators") == "conspir");
-    CHECK(porter_stemmer("conspire") == "conspir");
-    CHECK(porter_stemmer("conspired") == "conspir");
-    CHECK(porter_stemmer("conspiring") == "conspir");
-    CHECK(porter_stemmer("constable") == "constabl");
-    CHECK(porter_stemmer("constables") == "constabl");
-    CHECK(porter_stemmer("constance") == "constanc");
-    CHECK(porter_stemmer("constancy") == "constanc");
-    CHECK(porter_stemmer("constant") == "constant");
-    CHECK(porter_stemmer("knack") == "knack");
-    CHECK(porter_stemmer("knackeries") == "knackeri");
-    CHECK(porter_stemmer("knacks") == "knack");
-    CHECK(porter_stemmer("knag") == "knag");
-    CHECK(porter_stemmer("knave") == "knave");
-    CHECK(porter_stemmer("knaves") == "knave");
-    CHECK(porter_stemmer("knavish") == "knavish");
-    CHECK(porter_stemmer("kneaded") == "knead");
-    CHECK(porter_stemmer("kneading") == "knead");
-    CHECK(porter_stemmer("knee") == "knee");
-    CHECK(porter_stemmer("kneel") == "kneel");
-    CHECK(porter_stemmer("kneeled") == "kneel");
-    CHECK(porter_stemmer("kneeling") == "kneel");
-    CHECK(porter_stemmer("kneels") == "kneel");
-    CHECK(porter_stemmer("knees") == "knee");
-    CHECK(porter_stemmer("knell") == "knell");
-    CHECK(porter_stemmer("knelt") == "knelt");
-    CHECK(porter_stemmer("knew") == "knew");
-    CHECK(porter_stemmer("knick") == "knick");
-    CHECK(porter_stemmer("knif") == "knif");
-    CHECK(porter_stemmer("knife") == "knife");
-    CHECK(porter_stemmer("knight") == "knight");
-    CHECK(porter_stemmer("knightly") == "knight");
-    CHECK(porter_stemmer("knights") == "knight");
-    CHECK(porter_stemmer("knit") == "knit");
-    CHECK(porter_stemmer("knits") == "knit");
-    CHECK(porter_stemmer("knitted") == "knit");
-    CHECK(porter_stemmer("knitting") == "knit");
-    CHECK(porter_stemmer("knives") == "knive");
-    CHECK(porter_stemmer("knob") == "knob");
-    CHECK(porter_stemmer("knobs") == "knob");
-    CHECK(porter_stemmer("knock") == "knock");
-    CHECK(porter_stemmer("knocked") == "knock");
-    CHECK(porter_stemmer("knocker") == "knocker");
-    CHECK(porter_stemmer("knockers") == "knocker");
-    CHECK(porter_stemmer("knocking") == "knock");
-    CHECK(porter_stemmer("knocks") == "knock");
-    CHECK(porter_stemmer("knopp") == "knopp");
-    CHECK(porter_stemmer("knot") == "knot");
-    CHECK(porter_stemmer("knots") == "knot");
+    CHECK(stem("consign") == "consign");
+    CHECK(stem("consigned") == "consign");
+    CHECK(stem("consigning") == "consign");
+    CHECK(stem("consignment") == "consign");
+    CHECK(stem("consist") == "consist");
+    CHECK(stem("consisted") == "consist");
+    CHECK(stem("consistency") == "consist");
+    CHECK(stem("consistent") == "consist");
+    CHECK(stem("consistently") == "consist");
+    CHECK(stem("consisting") == "consist");
+    CHECK(stem("consists") == "consist");
+    CHECK(stem("consolation") == "consol");
+    CHECK(stem("consolations") == "consol");
+    CHECK(stem("consolatory") == "consolatori");
+    CHECK(stem("console") == "consol");
+    CHECK(stem("consoled") == "consol");
+    CHECK(stem("consoles") == "consol");
+    CHECK(stem("consolidate") == "consolid");
+    CHECK(stem("consolidated") == "consolid");
+    CHECK(stem("consolidating") == "consolid");
+    CHECK(stem("consoling") == "consol");
+    CHECK(stem("consolingly") == "consol");
+    CHECK(stem("consols") == "consol");
+    CHECK(stem("consonant") == "conson");
+    CHECK(stem("consort") == "consort");
+    CHECK(stem("consorted") == "consort");
+    CHECK(stem("consorting") == "consort");
+    CHECK(stem("conspicuous") == "conspicu");
+    CHECK(stem("conspicuously") == "conspicu");
+    CHECK(stem("conspiracy") == "conspiraci");
+    CHECK(stem("conspirator") == "conspir");
+    CHECK(stem("conspirators") == "conspir");
+    CHECK(stem("conspire") == "conspir");
+    CHECK(stem("conspired") == "conspir");
+    CHECK(stem("conspiring") == "conspir");
+    CHECK(stem("constable") == "constabl");
+    CHECK(stem("constables") == "constabl");
+    CHECK(stem("constance") == "constanc");
+    CHECK(stem("constancy") == "constanc");
+    CHECK(stem("constant") == "constant");
+    CHECK(stem("knack") == "knack");
+    CHECK(stem("knackeries") == "knackeri");
+    CHECK(stem("knacks") == "knack");
+    CHECK(stem("knag") == "knag");
+    CHECK(stem("knave") == "knave");
+    CHECK(stem("knaves") == "knave");
+    CHECK(stem("knavish") == "knavish");
+    CHECK(stem("kneaded") == "knead");
+    CHECK(stem("kneading") == "knead");
+    CHECK(stem("knee") == "knee");
+    CHECK(stem("kneel") == "kneel");
+    CHECK(stem("kneeled") == "kneel");
+    CHECK(stem("kneeling") == "kneel");
+    CHECK(stem("kneels") == "kneel");
+    CHECK(stem("knees") == "knee");
+    CHECK(stem("knell") == "knell");
+    CHECK(stem("knelt") == "knelt");
+    CHECK(stem("knew") == "knew");
+    CHECK(stem("knick") == "knick");
+    CHECK(stem("knif") == "knif");
+    CHECK(stem("knife") == "knife");
+    CHECK(stem("knight") == "knight");
+    CHECK(stem("knightly") == "knight");
+    CHECK(stem("knights") == "knight");
+    CHECK(stem("knit") == "knit");
+    CHECK(stem("knits") == "knit");
+    CHECK(stem("knitted") == "knit");
+    CHECK(stem("knitting") == "knit");
+    CHECK(stem("knives") == "knive");
+    CHECK(stem("knob") == "knob");
+    CHECK(stem("knobs") == "knob");
+    CHECK(stem("knock") == "knock");
+    CHECK(stem("knocked") == "knock");
+    CHECK(stem("knocker") == "knocker");
+    CHECK(stem("knockers") == "knocker");
+    CHECK(stem("knocking") == "knock");
+    CHECK(stem("knocks") == "knock");
+    CHECK(stem("knopp") == "knopp");
+    CHECK(stem("knot") == "knot");
+    CHECK(stem("knots") == "knot");
 }
 
 }   // anonymous namespace

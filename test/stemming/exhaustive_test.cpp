@@ -7,7 +7,7 @@
 
 #include"catch.hpp"
 
-using cdmh::data_processing::porter_stemmer;
+using cdmh::data_processing::porter_stemmer::stem;
 
 #ifndef EXHAUSTIVE_TEST
 #define EXHAUSTIVE_TEST 0
@@ -23550,6 +23550,6 @@ TEST_CASE("stemmer/exhaustive", "http://tartarus.org/martin/PorterStemmer/")
         "zwagger", "zwagger"};
 
     for (size_t i=0; i<sizeof(vocabulary)/sizeof(vocabulary[0]); i+=2)
-        CHECK(porter_stemmer(vocabulary[i]) == porter_stemmer(vocabulary[i+1]));
+        CHECK(stem(vocabulary[i]) == porter_stemmer(vocabulary[i+1]));
 }
 #endif

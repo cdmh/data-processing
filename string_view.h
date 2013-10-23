@@ -103,6 +103,17 @@ bool const operator==(string_view const &first, char const *second)
 }
 
 inline
+bool const operator==(string_view const &first, string_view const &second)
+{
+    auto const len1 = first.length();
+    auto const len2 = second.length();
+    if (len1 != len2)
+        return false;
+
+    return (strncasecmp(first.begin(), second.begin(), len1) == 0);
+}
+
+inline
 bool const operator<(string_view const &first, string_view const &second)
 {
     auto const len1 = first.length();
@@ -120,8 +131,6 @@ bool const operator<(string_view const &first, string_view const &second)
 
     return strncasecmp(first.begin(), second.begin(), len1) < 0;
 }
-
-bool const operator==(string_view const &first, string_view const &second);
 
 template<typename E, typename T>
 inline

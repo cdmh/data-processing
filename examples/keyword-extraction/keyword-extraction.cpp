@@ -4,6 +4,7 @@
 #include <memory>
 #include <atomic>
 #include <thread>
+#include <mutex>
 #include "../../data-processing.h"
 
 #define WRITE_RESULTS     0
@@ -22,12 +23,6 @@ using cdmh::data_processing::string_view;
 
 #ifndef USE_STEMMING
 #define USE_STEMMING 1
-#endif
-
-#if USE_STEMMING
-typedef std::string string_t;
-#else
-typedef string_view string_t;
 #endif
 
 // http://armandbrahaj.blog.al/2009/04/14/list-of-english-stop-words/
@@ -107,20 +102,30 @@ It find_word_begin(It &it,It ite)
 }
 
 inline
-string_t next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
+string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=true)
 {
     auto begin = find_word_begin(it,ite);
     if (begin == ite)
-        return string_t();
+        return string_view();
     it = std::find_if(it, ite, [](char ch) { return !is_word_char(ch); });
+    auto word = string_view(begin, it);
+    if (ignore_stopwords  &&  is_stop_word(word))
+        return next_word(it, ite);
+
 #if USE_STEMMING
-    auto word = cdmh::data_processing::porter_stemmer::stem(begin, it);
-#else
-    auto word = string_t(begin, it);
+    static std::vector<std::unique_ptr<std::string>> words;
+    static std::mutex mutex;
+    auto word_string = cdmh::data_processing::porter_stemmer::stem(begin, it);
+    if (!(word_string == string_view(begin, it)))
+    {
+        std::unique_ptr<std::string> new_word_string(new std::string(word_string));
+        word = *new_word_string;
+
+        std::lock_guard<std::mutex> lock(mutex);
+        words.push_back(std::move(new_word_string));
+    }
 #endif
-    return (ignore_stopwords  &&  is_stop_word(string_t(begin, it)))?
-        next_word(it, ite)
-      : word;
+    return word;
 }
 
 template<typename Out>
@@ -181,11 +186,11 @@ void count_words(string_view const &string, Words &words, bool ignore_stopwords)
 }
 
 void create_word_freq_map(
-    cdmh::data_processing::dataset const &ds,
-    char                           const *column,
-    size_t                                rows,
-    std::map<string_t, std::uint64_t>    &word_map,
-    bool                                  ignore_stopwords=true)
+    cdmh::data_processing::dataset const    &ds,
+    char                           const    *column,
+    size_t                                   rows,
+    std::map<string_view, std::uint64_t>    &word_map,
+    bool                                     ignore_stopwords=true)
 {
     // count up the words and
     for (size_t loop=0; loop<rows; ++loop)
@@ -485,18 +490,18 @@ class classifier
     }
 
     void process_words(
-        size_t                             row,
-        size_t                             column,
-        std::map<string_t, std::uint64_t> &word_map,
-        std::function<void (int)>          fn)
+        size_t                                row,
+        size_t                                column,
+        std::map<string_view, std::uint64_t> &word_map,
+        std::function<void (int)>             fn)
     {
         process_words(ds_[row][column].get<string_view>(), word_map, fn);
     }
 
     void process_words(
-        string_view                        string,
-        std::map<string_t, std::uint64_t> &word_map,
-        std::function<void (int)>          fn)
+        string_view                           string,
+        std::map<string_view, std::uint64_t> &word_map,
+        std::function<void (int)>             fn)
     {
         auto it  = string.begin();
         auto ite = string.end();
@@ -525,9 +530,9 @@ class classifier
     // Dataset format: id, title, body, tags
     cdmh::data_processing::dataset const &ds_;
     std::unique_ptr<BayesianClassifier>   classifier_;
-    std::map<string_t, std::uint64_t>     title_words_;
-    std::map<string_t, std::uint64_t>     tag_words_;
-    std::map<string_t, std::uint64_t>     body_words_;
+    std::map<string_view, std::uint64_t>  title_words_;
+    std::map<string_view, std::uint64_t>  tag_words_;
+    std::map<string_view, std::uint64_t>  body_words_;
 };
 
 int main()

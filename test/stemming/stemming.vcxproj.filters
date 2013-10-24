@@ -32,5 +32,8 @@
     <ClCompile Include="exhaustive_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="stemming_c_thread_safe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

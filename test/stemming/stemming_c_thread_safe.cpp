@@ -387,11 +387,14 @@ int stem(struct stemmer * z, char * b, int k)
 
 }
 
-TEST_CASE("stemmer/original")
+namespace original {
+
+std::string stem(char const * const word)
 {
+    std::string s(word);
     struct stemmer z;
-    CHECK(stem(&z, "agreed", 5) == 5);
-    std::string s("agreed");
-    s = s.substr(0, stem(&z, "agreed", 5)+1);
-    std::cout << s;
+    auto result = stem(&z, &*s.begin(), (int)s.length()-1);
+    return s.substr(0, result+1);
 }
+
+}  // namespace original

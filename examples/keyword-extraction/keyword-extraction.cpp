@@ -7,14 +7,15 @@
 #include <mutex>
 #include "../../data-processing.h"
 
-#define WRITE_RESULTS     0
-#define WRITE_PROGRESS    1
-#define PROFILING         0
-#define CALCULATE_STATS   1
+#define WRITE_WORD_INFO     0
+#define WRITE_PROGRESS      1
+#define WRITE_RESULT_TABLE  0
+#define CALCULATE_STATS     1
+
 #ifdef NDEBUG
-#define THREADED          1
+#define THREADED            1
 #else
-#define THREADED          0
+#define THREADED            0
 #endif
 
 namespace {     // anonymous namespace
@@ -94,9 +95,21 @@ bool const is_word_char(char ch)
 
 template<typename It>
 inline
+bool const is_numeric(It it,It ite)
+{
+    for (; it != ite; ++it)
+    {
+        if (*it < '0'  ||  *it > '9')
+            return false;
+    }
+    return true;
+}
+
+template<typename It>
+inline
 It find_word_begin(It &it,It ite)
 {
-    while (it != ite  &&  !is_word_char(*it))
+    while (it != ite  &&  (*it == '\''  ||  *it == '-'  ||  !is_word_char(*it)))
         ++it;
     return it;
 }
@@ -109,7 +122,7 @@ string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=tr
         return string_view();
     it = std::find_if(it, ite, [](char ch) { return !is_word_char(ch); });
     auto word = string_view(begin, it);
-    if (ignore_stopwords  &&  is_stop_word(word))
+    if ((ignore_stopwords  &&  is_stop_word(word))  ||  is_numeric(begin, it))
         return next_word(it, ite);
 
 #if USE_STEMMING
@@ -333,7 +346,7 @@ class classifier
 #endif
                 classifier_->addRawTrainingData(data);
             });
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
         std::cout << "\n";
 #endif
         std::cout << "\rTraining ... Done      ";
@@ -389,7 +402,7 @@ class classifier
   private:
     void classify_partition(size_t test_rows_begin, size_t test_rows_end, std::pair<size_t, size_t> &result)
     {
-#if CALCULATE_STATS  &&  !WRITE_RESULTS  &&  !PROFILING
+#if WRITE_RESULT_TABLE
                 std::cout << "\nId\tExpected\tSuccess\tMissed\tFalse";
 #endif
 
@@ -403,12 +416,12 @@ class classifier
                 std::vector<int> tag_indices;
                 process_words(row, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
 
-#if WRITE_RESULTS  ||  CALCULATE_STATS
+#if WRITE_WORD_INFO  ||  CALCULATE_STATS
                 std::sort(tag_indices.begin(), tag_indices.end());
                 auto const outputs = classifier_->calculatePossibleOutputs(data);
 #endif
 
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
                 std::cout << "\nExpected        : ";
                 for (auto index : tag_indices)
                     std::cout << map_key(tag_words_, index) << " (" << index << ") ";
@@ -429,15 +442,15 @@ class classifier
                 auto const success  = correct.size();
                 cumm_success  += success;
                 cumm_expected += expected;
-#if WRITE_RESULTS  ||  !PROFILING
+#if WRITE_WORD_INFO  ||  WRITE_RESULT_TABLE
                 auto const missed          = tag_indices.size() - correct.size();
                 auto const false_positives = outputs.size() - correct.size();
 #endif
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
                 std::cout << "\nSuccess: " << success << "%\t";
                 std::cout << "\nMissed: " << missed << "%\t";
                 std::cout << "\nFalse: " << false_positives << "%\t";
-#elif !PROFILING
+#elif WRITE_RESULT_TABLE
                 auto const rate = (expected==success) ? 1.0f : float(success) / expected;
                 std::cout << "\n" << ds_[row]["id"].get<string_view>()
                           << "\t" << std::setw(3) << std::right << expected
@@ -469,7 +482,7 @@ class classifier
             for (float &value : data)
                 value = 0.0;
 
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
             std::cout << "\n\n" << ds_[index][1].get<string_view>();
             std::cout << "\nTitle:";
 #endif
@@ -478,14 +491,14 @@ class classifier
             if (body_words_.size() > 0)
                 process_words(index, 2, body_words_, [&data, this](int n) { data[n + title_words_.size()] = 1.0; });
 
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
             std::cout << "\nTags:";
 #endif
             std::vector<int> tag_indices;
-            if (training  ||  WRITE_RESULTS)
+            if (training  ||  WRITE_WORD_INFO)
                 process_words(index, 3, tag_words_, [&tag_indices](int n) { tag_indices.emplace_back(n); });
 
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
             std::cout << "\nConsidered Words: ";
             for (size_t loop=0; loop<data.size(); ++loop)
             {
@@ -505,7 +518,7 @@ class classifier
                 std::cout << "\n*** " << std::setw(3) << std::right << index << " " << map_key(tag_words_, index) << " ";
 #endif
 
-#if 0 && !defined(NDEBUG)  &&  WRITE_RESULTS
+#if 0 && !defined(NDEBUG)  &&  WRITE_WORD_INFO
             std::cout << "\n";
             for (float &value : data)
                 std::cout << (int)value;
@@ -553,7 +566,7 @@ class classifier
                         throw overflow_exception();
                     fn((int)offset);
                 }
-#if WRITE_RESULTS
+#if WRITE_WORD_INFO
                 else
                     std::cout << "\nUntrained words is ignored: " << word;
 #endif

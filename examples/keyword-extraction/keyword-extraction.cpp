@@ -9,7 +9,7 @@
 
 #define WRITE_RESULTS     0
 #define WRITE_PROGRESS    1
-#define PROFILING         1
+#define PROFILING         0
 #define CALCULATE_STATS   1
 #ifdef NDEBUG
 #define THREADED          1
@@ -116,7 +116,7 @@ string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=tr
     static std::vector<std::unique_ptr<std::string>> words;
     static std::mutex mutex;
     auto word_string = cdmh::data_processing::porter_stemmer::stem(begin, it);
-    if (!(word_string == string_view(begin, it)))
+    if (word_string.length() > 0  &&  !(word_string == string_view(begin, it)))
     {
         std::unique_ptr<std::string> new_word_string(new std::string(word_string));
         word = *new_word_string;
@@ -126,21 +126,6 @@ string_view next_word(char const *&it, char const *ite, bool ignore_stopwords=tr
     }
 #endif
     return word;
-}
-
-template<typename Out>
-void calculate_hashes(string_view const &string, Out ito, bool ignore_stopwords=true)
-{
-    std::locale loc;
-    std::collate<char> const &col = std::use_facet<std::collate<char>>(loc);
-    auto it  = string.begin();
-    auto ite = string.end();
-    while (it != ite)
-    {
-        auto const word = next_word(it, ite, ignore_stopwords);
-        if (word.length() > 0)
-            *ito++ = col.hash(word.begin(), word.end());
-    }
 }
 
 
@@ -185,20 +170,68 @@ void count_words(string_view const &string, Words &words, bool ignore_stopwords)
     }
 }
 
-void create_word_freq_map(
+inline void remove_words_with_frequency(
+    std::map<string_view, std::uint64_t> &word_map,
+    std::uint64_t freq)
+{
+    for (auto it=word_map.begin(); it!=word_map.end(); )
+    {
+        if (it->second == freq)
+            word_map.erase(it++);
+        else
+            ++it;
+    }
+}
+
+inline void create_word_freq_map(
     cdmh::data_processing::dataset const    &ds,
     char                           const    *column,
     size_t                                   rows,
     std::map<string_view, std::uint64_t>    &word_map,
     bool                                     ignore_stopwords=true)
 {
-    // count up the words and
     for (size_t loop=0; loop<rows; ++loop)
         count_words(ds[loop][column].get<string_view>(), word_map, ignore_stopwords);
+
+    remove_words_with_frequency(word_map, 1);
+
+    // find the frequency threshold of 75% of the remaining words
+    std::map<std::uint64_t, std::uint64_t> frequency_map;
+    for (auto it=word_map.begin(); it!=word_map.end(); ++it)
+        frequency_map[it->first.length()] += it->second;
+    std::uint64_t word_count = 0;
+    std::vector<std::pair<std::uint64_t, std::uint64_t>> frequencies;
+    for (auto it=frequency_map.begin(); it!=frequency_map.end(); ++it)
+    {
+        frequencies.push_back(*it);
+        word_count += it->second;
+    }
+    std::sort(
+        frequencies.begin(),
+        frequencies.end(),
+        [](std::pair<std::uint64_t, std::uint64_t> const &lhs,
+           std::pair<std::uint64_t, std::uint64_t> const &rhs)
+        {
+            return lhs.second < rhs.second;
+        });
+
+    word_count *= .75;
+    std::uint64_t sum=0;
+    std::uint64_t threshold=0;
+    for (auto it=frequencies.rbegin(); it!=frequencies.rend(); ++it)
+    {
+        if (sum>word_count)
+            remove_words_with_frequency(word_map, it->first);
+        else
+        {
+            sum += it->second;
+            threshold = it->first;
+        }
+    }
 }
 
 template<typename It, typename Offset>
-It advance(It it, Offset offset)
+inline It advance(It it, Offset offset)
 {
     std::advance(it, offset);
     return it;
@@ -396,9 +429,11 @@ class classifier
                 auto const success  = correct.size();
                 cumm_success  += success;
                 cumm_expected += expected;
-#if WRITE_RESULTS
+#if WRITE_RESULTS  ||  !PROFILING
                 auto const missed          = tag_indices.size() - correct.size();
                 auto const false_positives = outputs.size() - correct.size();
+#endif
+#if WRITE_RESULTS
                 std::cout << "\nSuccess: " << success << "%\t";
                 std::cout << "\nMissed: " << missed << "%\t";
                 std::cout << "\nFalse: " << false_positives << "%\t";
@@ -555,7 +590,7 @@ int main()
 #ifdef NDEBUG
     size_t num_rows = 100000;
 #else
-    size_t num_rows = 100;
+    size_t num_rows = 1000;
 #endif
 
     if (num_rows == 0)

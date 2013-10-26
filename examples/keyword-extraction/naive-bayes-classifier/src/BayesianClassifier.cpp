@@ -10,6 +10,14 @@
 
 #define WRITE_PROGRESS    1
 
+#ifndef VERIFY_MAP_KEY_ITERATOR
+#   ifdef NDEBUG
+#       define VERIFY_MAP_KEY_ITERATOR 0
+#   else
+#       define VERIFY_MAP_KEY_ITERATOR 1
+#   endif
+#endif
+
 #if WRITE_PROGRESS
 #include <iostream>
 #endif
@@ -198,7 +206,7 @@ void BayesianClassifier::calculateProbabilitiesOfOutputs() {
 /**
  * Calculate the map key for each value in the variable probabilitiesOfInputs
  */
-unsigned long BayesianClassifier::calculateMapKey(int effectColumn, int effectValue, int causeValue) const
+unsigned long const BayesianClassifier::calculateMapKey(int effectColumn, int effectValue, int causeValue) const
 {
     if (max_number_of_domain_values == 0)
         throw std::logic_error("BayesianClassifier::calculateMapKey called before initialisation of max_number_of_domain_values");
@@ -217,7 +225,8 @@ unsigned long BayesianClassifier::calculateMapKey(int effectColumn, int effectVa
  * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
  * The output with the highest probability is returned.
  */
-int BayesianClassifier::calculateOutput(std::vector<float> const &input) {
+int const BayesianClassifier::calculateOutput(std::vector<float> const &input)
+{
     float highestProbability = outputProbabilityTreshold;
     int highestOutput = rand() % getOutputDomain().getNumberOfValues();
     unsigned long key = 0;
@@ -257,12 +266,21 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
         float probability = probabilitiesOfOutputs[i];
 
         auto key_it = probabilitiesOfInputs.cbegin() + i * key_offset;
-        for (unsigned int j = 0; j < input.size()  &&  probability > threshold; j++, key_it += domains[i].getNumberOfValues()) {
+        for (unsigned int j = 0; j < input.size()  &&  probability > threshold; ++j)
+        {
+#if VERIFY_MAP_KEY_ITERATOR
+            {
             // if this assert fails, then the key_it is not finding the correct key, ie the
             // same key as would be returned by calling
             //     probabilitiesOfInputs.find(calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i));
-            assert((key_it + domains[j].calculateDiscreteValue(input[j]))->first == calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i));
+            auto const mapkey = calculateMapKey(j, domains[j].calculateDiscreteValue(input[j]), i);
+            assert((key_it + domains[j].calculateDiscreteValue(input[j]))->first == mapkey);
+            if ((key_it + domains[j].calculateDiscreteValue(input[j]))->first != mapkey)
+                throw std::runtime_error("key_it is not finding the correct key, i.e. it doesn't match calculateMapKey()");
+            }
+#endif
             probability *= (key_it + domains[j].calculateDiscreteValue(input[j]))->second;
+            key_it += domains[j].getNumberOfValues();
         }
 
         if (probability > threshold)
@@ -276,7 +294,7 @@ std::vector<std::pair<int, float>> BayesianClassifier::calculatePossibleOutputs(
  * Calculate the probability of this output given this input.
  * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
  */
-float BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const &input, float output) {
+float const BayesianClassifier::calculateProbabilityOfOutput(std::vector<float> const &input, float output) {
     unsigned long key = 0;
 
     std::vector<float> probabilities;

@@ -126,9 +126,109 @@ typedef std::vector<float> RawTrainingData;
  * - The last column (the output) is a boolean representing if the opponent is hurt or not.
  * 
  */
-class BayesianClassifier {
+class BayesianClassifier
+{
+  public:
+	/**
+	 * BayesianClassifier constructor. It constructs the classifier with raw training data from the file
+	 * and uses domains to generate discrete values (TrainingData).
+	 *
+	 * Beware : The file must not have an empty line at the end.
+	 */
+	BayesianClassifier(std::string filename, std::vector<Domain> const &_domains);
 
-private:
+	/**
+	 * BayesianClassifier constructor. It constructs a classifier with the specified domain.
+	 * Raw training data are not given, it is possible to add data after the construction.
+	 */
+	BayesianClassifier(std::vector<Domain> const &_domains);
+
+	/**
+	 * Calculate the most probable output given this input with this formula :
+	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
+	 * The output with the highest probability is returned.
+	 */
+	int const calculateOutput(std::vector<float> const &input);
+
+    /**
+     * calculate all possible outputs
+     */
+    std::vector<std::pair<int, float>> calculatePossibleOutputs(std::vector<float> const &input) const;
+
+	/**
+	 * Calculate the probability of this output given this input.
+ 	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
+	 */
+	float const calculateProbabilityOfOutput(RawTrainingData const &input, float output);
+
+	/**
+	 * Add raw training data from a file to adapt the classifier. 
+	 * It updates the variables containing the probabilities.
+	 *
+	 * Beware : The file must not have an empty line at the end.
+	 */
+	void addRawTrainingData(std::string const &filename);
+
+	/**
+	 * Add one set of raw training data to adapt the classifier
+	 * It updates the variables containing the probabilities.
+	 */
+	void addRawTrainingData(RawTrainingData const &rawTrainingData);
+
+  private:
+	/**
+	 * Construct the classifier from the RawTrainingData in the file.
+	 *
+	 * Beware : The file must not have an empty line at the end.
+	 */
+	void constructClassifier(std::string const &filename);
+
+	/**
+	 * Calculate the probabilities for each possibility of inputs.
+	 */
+	void calculateProbabilitiesOfInputs();
+	void calculateProbabilitiesOfInputsWithoutData();
+
+	/**
+	 * Calculate the probability of P(effectColum:effectValue | lastColumn:causeValue)
+	 * It saves data into the variable probabilitiesOfInputs.
+	 */
+	void calculateProbability(int effectColumn, int effectValue,
+					int causeValue);
+
+	/**
+	 * Calculate P(Output) of each output.
+	 * It saves data into the variable probabilitiesOfOuputs.
+	 */
+	void calculateProbabilitiesOfOutputs();
+
+	/**
+	 * Calculate the map key for each value in the variable probabilitiesOfInputs
+	 */
+	unsigned long const calculateMapKey(int effectColumn, int effectValue, int causeValue) const;
+
+	/**
+	 * Update the output probabilities from a new set of raw training data.
+	 */
+	void updateOutputProbabilities(int output);
+
+	/**
+	 * Update the probabilities after adding one set of training data.
+	 */
+	void updateProbabilities(TrainingData const &trainingData);
+
+	/**
+	 * Convert a vector<float> into a vector<int> by discretizing the values
+	 * using the domain for each column.
+	 */
+	TrainingData convertRawTrainingData(RawTrainingData const &floatVector);
+	
+	/**
+	 * Returns the domain of the output column.
+	 */
+	Domain const &getOutputDomain() const;
+
+  private:
 	/**
 	 * Number of columns in the training data.
 	 */
@@ -165,103 +265,4 @@ private:
 #else
     std::map<unsigned long const, float> probabilitiesOfInputs;
 #endif
-
-	/**
-	 * Construct the classifier from the RawTrainingData in the file.
-	 *
-	 * Beware : The file must not have an empty line at the end.
-	 */
-	void constructClassifier(std::string const &filename);
-
-	/**
-	 * Calculate the probabilities for each possibility of inputs.
-	 */
-	void calculateProbabilitiesOfInputs();
-	void calculateProbabilitiesOfInputsWithoutData();
-
-	/**
-	 * Calculate the probability of P(effectColum:effectValue | lastColumn:causeValue)
-	 * It saves data into the variable probabilitiesOfInputs.
-	 */
-	void calculateProbability(int effectColumn, int effectValue,
-					int causeValue);
-
-	/**
-	 * Calculate P(Output) of each output.
-	 * It saves data into the variable probabilitiesOfOuputs.
-	 */
-	void calculateProbabilitiesOfOutputs();
-
-	/**
-	 * Calculate the map key for each value in the variable probabilitiesOfInputs
-	 */
-	unsigned long calculateMapKey(int effectColumn, int effectValue, int causeValue) const;
-
-	/**
-	 * Update the output probabilities from a new set of raw training data.
-	 */
-	void updateOutputProbabilities(int output);
-
-	/**
-	 * Update the probabilities after adding one set of training data.
-	 */
-	void updateProbabilities(TrainingData const &trainingData);
-
-	/**
-	 * Convert a vector<float> into a vector<int> by discretizing the values
-	 * using the domain for each column.
-	 */
-	TrainingData convertRawTrainingData(RawTrainingData const &floatVector);
-	
-	/**
-	 * Returns the domain of the output column.
-	 */
-	Domain const &getOutputDomain() const;
-
-public:
-	/**
-	 * BayesianClassifier constructor. It constructs the classifier with raw training data from the file
-	 * and uses domains to generate discrete values (TrainingData).
-	 *
-	 * Beware : The file must not have an empty line at the end.
-	 */
-	BayesianClassifier(std::string filename, std::vector<Domain> const &_domains);
-
-	/**
-	 * BayesianClassifier constructor. It constructs a classifier with the specified domain.
-	 * Raw training data are not given, it is possible to add data after the construction.
-	 */
-	BayesianClassifier(std::vector<Domain> const &_domains);
-
-	/**
-	 * Calculate the most probable output given this input with this formula :
-	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
-	 * The output with the highest probability is returned.
-	 */
-	int calculateOutput(std::vector<float> const &input);
-
-    /**
-     * calculate all possible outputs
-     */
-    std::vector<std::pair<int, float>> calculatePossibleOutputs(std::vector<float> const &input) const;
-
-	/**
-	 * Calculate the probability of this output given this input.
- 	 * P(Output | Input) = 1/Z * P(Output) * P(InputValue1 | Ouput) * P(InputValue2 | Ouput) * ...
-	 */
-	float calculateProbabilityOfOutput(RawTrainingData const &input, float output);
-
-	/**
-	 * Add raw training data from a file to adapt the classifier. 
-	 * It updates the variables containing the probabilities.
-	 *
-	 * Beware : The file must not have an empty line at the end.
-	 */
-	void addRawTrainingData(std::string const &filename);
-
-	/**
-	 * Add one set of raw training data to adapt the classifier
-	 * It updates the variables containing the probabilities.
-	 */
-	void addRawTrainingData(RawTrainingData const &rawTrainingData);
 };
